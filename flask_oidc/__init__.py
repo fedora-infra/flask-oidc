@@ -54,7 +54,7 @@ class OpenIDConnect:
         app.config.setdefault("OIDC_CLIENT_ID", self.client_secrets["client_id"])
         app.config.setdefault("OIDC_CLIENT_SECRET", self.client_secrets["client_secret"])
         app.config.setdefault("OIDC_USERINFO_URL", self.client_secrets["userinfo_uri"])
-        app.config.setdefault("OIDC_CLIENT_AUTH_METHOD", "client_secret_post")
+        app.config.setdefault("OIDC_INTROSPECTION_AUTH_METHOD", "client_secret_post")
         app.config.setdefault("OIDC_CALLBACK_ROUTE", "/oidc_callback")
 
         app.config.setdefault("OIDC_SCOPES", "openid profile email")
@@ -73,7 +73,7 @@ class OpenIDConnect:
             server_metadata_url=app.config["OIDC_SERVER_METADATA_URL"],
             client_kwargs={
                 "scope": app.config["OIDC_SCOPES"],
-                "token_endpoint_auth_method": app.config["OIDC_CLIENT_AUTH_METHOD"],
+                "token_endpoint_auth_method": app.config["OIDC_INTROSPECTION_AUTH_METHOD"],
             },
         )
 
