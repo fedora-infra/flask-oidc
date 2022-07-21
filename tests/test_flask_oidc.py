@@ -77,11 +77,14 @@ class MockHttp(object):
             raise Exception('Non-recognized path %s requested' % path)
 
 
+
+# TODO make into fixture because nose tests not working.
 @nottest
 def make_test_client():
     """
     :return: A Flask test client for the test app, and the mocks it uses.
     """
+    # TODO update the params with the updated versions
     app = create_app({
         'SECRET_KEY': 'SEEEKRIT',
         'TESTING': True,

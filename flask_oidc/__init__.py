@@ -98,6 +98,7 @@ class OpenIDConnect:
     def _oidc_callback(self):
         try:
             session["token"] = self.oauth.oidc.authorize_access_token()
+            g.oidc_token_info = session["token"]
         except AttributeError:
             raise
         return redirect("/")
