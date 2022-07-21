@@ -3,15 +3,13 @@ import json
 import time
 import codecs
 from base64 import urlsafe_b64encode
-try:
-    from unittest.mock import Mock, patch
-except ImportError:
-    from mock import Mock, patch
+from unittest.mock import Mock, patch
 
+import pytest
+from flask import Response
 from six.moves.urllib.parse import urlsplit, parse_qs, urlencode
-from nose.tools import nottest
 
-from .app import create_app
+from . import app
 
 
 last_request = None
@@ -77,22 +75,19 @@ class MockHttp(object):
             raise Exception('Non-recognized path %s requested' % path)
 
 
-
-# TODO make into fixture because nose tests not working.
-@nottest
-def make_test_client():
+@pytest.fixture
+def test_client(isolate_app_globals):
     """
     :return: A Flask test client for the test app, and the mocks it uses.
     """
-    # TODO update the params with the updated versions
-    app = create_app({
+    test_app = app.create_app({
         'SECRET_KEY': 'SEEEKRIT',
         'TESTING': True,
         'OIDC_CLIENT_SECRETS': resource_filename(
             __name__, 'client_secrets.json'),
     }, {
     })
-    test_client = app.test_client()
+    test_client = test_app.test_client()
 
     return test_client
 
@@ -111,53 +106,57 @@ def callback_url_for(response):
 
 
 @patch('time.time', Mock(return_value=time.time()))
-@patch('httplib2.Http', MockHttp)
-def test_signin():
+# @patch('httplib2.Http', MockHttp)
+def test_signin(test_client):
     """
     Happy path authentication test.
     """
-    test_client = make_test_client()
+    with patch.object(
+        app.oidc.oauth.oidc, "authorize_redirect"
+    ) as authorize_redirect:
+        authorize_redirect_response = Response(
+            status=302, headers={"Location": "boo?state=1"}
+        )
+        authorize_redirect.return_value = authorize_redirect_response
 
-    # make an unauthenticated request,
-    # which should result in a redirect to the IdP
-    r1 = test_client.get('/')
-    assert r1.status_code == 302,\
-        "Expected redirect to IdP "\
-        "(response status was {response.status})".format(response=r1)
+        # make an unauthenticated request,
+        # which should result in a redirect to the IdP
+        r1 = test_client.get('/')
+        assert r1.status_code == 302,\
+            "Expected redirect to IdP "\
+            "(response status was {response.status})".format(response=r1)
 
-    # the app should now contact the IdP
-    # to exchange that auth code for credentials
-    r2 = test_client.get(callback_url_for(r1))
-    assert r2.status_code == 302,\
-        "Expected redirect to destination "\
-        "(response status was {response.status})".format(response=r2)
-    r2location = urlsplit(r2.headers['Location'])
-    assert r2location.path == '/',\
-        "Expected redirect to destination "\
-        "(unexpected path {location.path})".format(location=r2location)
+        # the app should now contact the IdP
+        # to exchange that auth code for credentials
+        r2 = test_client.get(callback_url_for(r1))
+        assert r2.status_code == 302,\
+            "Expected redirect to destination "\
+            "(response status was {response.status})".format(response=r2)
+        r2location = urlsplit(r2.headers['Location'])
+        assert r2location.path == '/',\
+            "Expected redirect to destination "\
+            "(unexpected path {location.path})".format(location=r2location)
 
-    # Let's get the at and rt
-    r3 = test_client.get('/at')
-    assert r3.status_code == 200,\
-        "Expected access token to succeed"
-    page_text = ''.join(codecs.iterdecode(r3.response, 'utf-8'))
-    assert page_text == 'mock_access_token',\
-        "Access token expected"
-    r4 = test_client.get('/rt')
-    assert r4.status_code == 200,\
-        "Expected refresh token to succeed"
-    page_text = ''.join(codecs.iterdecode(r4.response, 'utf-8'))
-    assert page_text == 'mock_refresh_token',\
-        "Refresh token expected"
+        # Let's get the at and rt
+        r3 = test_client.get('/at')
+        assert r3.status_code == 200,\
+            "Expected access token to succeed"
+        page_text = ''.join(codecs.iterdecode(r3.response, 'utf-8'))
+        assert page_text == 'mock_access_token',\
+            "Access token expected"
+        r4 = test_client.get('/rt')
+        assert r4.status_code == 200,\
+            "Expected refresh token to succeed"
+        page_text = ''.join(codecs.iterdecode(r4.response, 'utf-8'))
+        assert page_text == 'mock_refresh_token',\
+            "Refresh token expected"
 
 
 @patch('httplib2.Http', MockHttp)
-def test_refresh():
+def test_refresh(test_client):
     """
     Test token expiration and refresh.
     """
-    test_client = make_test_client()
-
     with patch('time.time', Mock(return_value=time.time())) as time_1:
         # authenticate and get an ID token cookie
         auth_redirect = test_client.get('/')
@@ -174,12 +173,10 @@ def test_refresh():
             "App should have tried to refresh credentials"
 
 
-def _check_api_token_handling(api_path):
+def _check_api_token_handling(test_client, api_path):
     """
     Test API token acceptance.
     """
-    test_client = make_test_client()
-
     # Test without a token
     resp = test_client.get(api_path)
     assert resp.status_code == 401, "Token should be required"
@@ -218,16 +215,14 @@ def _check_api_token_handling(api_path):
     assert resp.status_code == 401, 'Token should be refused'
 
 @patch('httplib2.Http', MockHttp)
-def test_api_token():
-    _check_api_token_handling('/api')
+def test_api_token(test_client):
+    _check_api_token_handling(test_client, '/api')
 
 @patch('httplib2.Http', MockHttp)
-def test_api_token_with_external_rendering():
-    _check_api_token_handling('/external_api')
+def test_api_token_with_external_rendering(test_client):
+    _check_api_token_handling(test_client, '/external_api')
 
-def test_validate_token_return_false():
-    test_client = make_test_client()
-
+def test_validate_token_return_false(test_client):
     from .app import oidc
 
     no_token_err = oidc.validate_token(None)

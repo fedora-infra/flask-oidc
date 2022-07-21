@@ -34,6 +34,7 @@ setup(
     install_requires=[
         'Flask',
         'Authlib',
+        'requests',
         'six',
     ],
     tests_require=['nose', 'mock'],
