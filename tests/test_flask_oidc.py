@@ -1,95 +1,64 @@
-from pkg_resources import resource_filename, resource_stream
+import codecs
 import json
 import time
-import codecs
-from base64 import urlsafe_b64encode
-from unittest.mock import Mock, patch
+from pkg_resources import resource_filename, resource_stream
+from unittest import mock
+from urllib.parse import parse_qs, urlencode, urlparse, urlsplit
 
 import pytest
-from flask import Response
-from six.moves.urllib.parse import urlsplit, parse_qs, urlencode
+from authlib.common.urls import url_decode
+from flask import session
 
 from . import app
-
+from .authlib_utils import get_bearer_token, mock_send_value
 
 last_request = None
-with resource_stream(__name__, 'client_secrets.json') as f:
-    client_secrets = json.load(codecs.getreader('utf-8')(f))
 
 
-class MockHttpResponse(object):
-    status = 200
+@pytest.fixture(scope="session")
+def client_secrets():
+    """The parsed contents of `client_secrets.json`."""
+    with resource_stream(__name__, 'client_secrets.json') as f:
+        return json.load(codecs.getreader('utf-8')(f))["web"]
 
 
-class MockHttp(object):
-    def request(self, path, method='GET', post_string='', **kwargs):
-        global last_request
-        last_request = kwargs
-        last_request['path'] = path
-        iat = time.time() - 1
-        exp = time.time() + 1
-        post_args = {}
-        if method == 'POST':
-            post_args = parse_qs(post_string)
-
-        if path == 'https://test/token':
-            return MockHttpResponse(), json.dumps({
-                'access_token': 'mock_access_token',
-                'refresh_token': 'mock_refresh_token',
-                'id_token': '.{0}.'.format(urlsafe_b64encode(json.dumps({
-                    'aud': client_secrets['web']['client_id'],
-                    'sub': 'mock_user_id',
-                    'email_verified': True,
-                    'iat': iat,
-                    'exp': exp,
-                    'iss': 'accounts.google.com',
-                }).encode('utf-8')).decode('utf-8')),
-            }).encode('utf-8')
-        elif path == 'https://test/tokeninfo':
-            assert post_args['client_id'] == ['MyClient'], \
-                'Client ID is specified'
-            req_token = post_args['token'][0]
-            token_info = {'active': False}
-            if req_token in ['query_token', 'post_token']:
-                token_info['active'] = True
-                token_info['scope'] = 'openid'
-                token_info['sub'] = 'valid_sub'
-                token_info['aud'] = 'MyClient'
-            elif req_token == 'insufficient_token':
-                token_info['active'] = True
-                token_info['scope'] = 'email'
-                token_info['sub'] = 'valid_sub'
-                token_info['aud'] = 'MyClient'
-            elif req_token == 'multi_aud_token':
-                token_info['active'] = True
-                token_info['scope'] = 'openid'
-                token_info['sub'] = 'valid_sub'
-                token_info['aud'] = ['MyClient', 'TheirClient']
-            elif req_token == 'some_elses_token':
-                token_info['active'] = True
-                token_info['scope'] = 'openid'
-                token_info['sub'] = 'valid_sub'
-                token_info['aud'] = 'TheirClient'
-            return MockHttpResponse(), json.dumps(token_info)
-        else:
-            raise Exception('Non-recognized path %s requested' % path)
+@pytest.fixture(scope="session")
+def oidc_server_metadata(client_secrets):
+    """IdP server metadata used in tests."""
+    base_url = client_secrets["issuer"].rstrip("/")
+    return {
+        "issuer": f"{base_url}/",
+        "authorization_endpoint": f"{base_url}/Authorization",
+        "token_endpoint": f"{base_url}/Token",
+        "userinfo_endpoint": f"{base_url}/UserInfo",
+        # "jwks_uri": f"{base_url}/Jwks",
+    }
 
 
 @pytest.fixture
-def test_client(isolate_app_globals):
-    """
-    :return: A Flask test client for the test app, and the mocks it uses.
-    """
-    test_app = app.create_app({
-        'SECRET_KEY': 'SEEEKRIT',
-        'TESTING': True,
-        'OIDC_CLIENT_SECRETS': resource_filename(
-            __name__, 'client_secrets.json'),
-    }, {
-    })
-    test_client = test_app.test_client()
+def test_app(isolate_app_globals, oidc_server_metadata):
+    """A Flask app object set up for testing."""
+    test_app = app.create_app(
+        {
+            'SECRET_KEY': 'SEEEKRIT',
+            'TESTING': True,
+            'OIDC_CLIENT_SECRETS': resource_filename(
+                __name__, 'client_secrets.json'
+            ),
+        }, {}
+    )
 
-    return test_client
+    with mock.patch.object(
+        app.oidc.oauth.oidc, "load_server_metadata"
+    ) as load_server_metadata:
+        load_server_metadata.return_value = oidc_server_metadata
+        yield test_app
+
+
+@pytest.fixture
+def test_client(test_app):
+    """A Flask test client for the test app."""
+    return test_app.test_client()
 
 
 def callback_url_for(response):
@@ -105,26 +74,31 @@ def callback_url_for(response):
     return callback_url
 
 
-@patch('time.time', Mock(return_value=time.time()))
-# @patch('httplib2.Http', MockHttp)
-def test_signin(test_client):
+@mock.patch('time.time', mock.Mock(return_value=time.time()))
+def test_signin(test_app, test_client):
     """
     Happy path authentication test.
     """
-    with patch.object(
-        app.oidc.oauth.oidc, "authorize_redirect"
-    ) as authorize_redirect:
-        authorize_redirect_response = Response(
-            status=302, headers={"Location": "boo?state=1"}
-        )
-        authorize_redirect.return_value = authorize_redirect_response
-
+    with test_app.test_request_context():
         # make an unauthenticated request,
         # which should result in a redirect to the IdP
         r1 = test_client.get('/')
         assert r1.status_code == 302,\
             "Expected redirect to IdP "\
             "(response status was {response.status})".format(response=r1)
+        url = r1.headers.get("Location")
+        assert "state=" in url
+        state = dict(url_decode(urlparse(url).query))["state"]
+        assert state is not None
+        data = session[f"_state_oidc_{state}"]
+
+    with test_app.test_request_context(
+        path=f"/?code=a&state={state}"
+    ), mock.patch('requests.sessions.Session.send') as send:
+        # session is cleared after exiting test context
+        session[f'_state_oidc_{state}'] = data
+
+        send.return_value = mock_send_value(get_bearer_token())
 
         # the app should now contact the IdP
         # to exchange that auth code for credentials
@@ -152,12 +126,12 @@ def test_signin(test_client):
             "Refresh token expected"
 
 
-@patch('httplib2.Http', MockHttp)
+# @mock.patch('httplib2.Http', MockHttp)
 def test_refresh(test_client):
     """
     Test token expiration and refresh.
     """
-    with patch('time.time', Mock(return_value=time.time())) as time_1:
+    with mock.patch('time.time', mock.Mock(return_value=time.time())) as time_1:
         # authenticate and get an ID token cookie
         auth_redirect = test_client.get('/')
         callback_redirect = test_client.get(callback_url_for(auth_redirect))
@@ -166,7 +140,7 @@ def test_refresh(test_client):
         assert page_text == 'too many secrets', "Authentication failed"
 
     # app should now try to use the refresh token
-    with patch('time.time', Mock(return_value=time.time() + 10)) as time_2:
+    with mock.patch('time.time', mock.Mock(return_value=time.time() + 10)) as time_2:
         test_client.get('/')
         body = parse_qs(last_request['body'])
         assert body.get('refresh_token') == ['mock_refresh_token'],\
@@ -214,11 +188,13 @@ def _check_api_token_handling(test_client, api_path):
     resp = test_client.get(api_path + '?access_token=some_elses_token')
     assert resp.status_code == 401, 'Token should be refused'
 
-@patch('httplib2.Http', MockHttp)
+
+# @mock.patch('httplib2.Http', MockHttp)
 def test_api_token(test_client):
     _check_api_token_handling(test_client, '/api')
 
-@patch('httplib2.Http', MockHttp)
+
+# @mock.patch('httplib2.Http', MockHttp)
 def test_api_token_with_external_rendering(test_client):
     _check_api_token_handling(test_client, '/external_api')
 
