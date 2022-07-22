@@ -98,7 +98,7 @@ class OpenIDConnect:
     def _oidc_callback(self):
         try:
             session["token"] = self.oauth.oidc.authorize_access_token()
-            g.oidc_token_info = session["token"]
+            g.oidc_token_info = session.get("token")
         except AttributeError:
             raise
         return redirect("/")
@@ -106,6 +106,7 @@ class OpenIDConnect:
     def check_token_expiry(self):
         try:
             token = session.get("token")
+            g.oidc_token_info = session.get("token")
             if token:
                 if session.get("token")["expires_at"] - 60 < int(time.time()):
                     self.logout()
