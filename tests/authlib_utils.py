@@ -54,9 +54,9 @@ def mock_send_value(body, status_code=200):
 
 def get_bearer_token():
     return {
-        'token_type': 'Bearer',
-        'access_token': 'a',
-        'refresh_token': 'b',
-        'expires_in': '3600',
-        'expires_at': int(time.time()) + 3600,
+        "token_type": "Bearer",
+        "access_token": "a",
+        "refresh_token": "b",
+        "expires_in": "3600",
+        "expires_at": int(time.time()) + 3600,
     }
