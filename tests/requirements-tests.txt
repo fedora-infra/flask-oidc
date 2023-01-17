@@ -1,4 +1,7 @@
 Authlib
 pytest-django
 pytest
-
+six
+nose
+requests
+httplib2

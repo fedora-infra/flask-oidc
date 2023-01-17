@@ -20,7 +20,6 @@ This library should work with any standards compliant OpenID Connect provider.
 
 It has been tested with:
 
-* `Google+ Login <https://developers.google.com/accounts/docs/OAuth2Login>`_
 * `Ipsilon <https://ipsilon-project.org/>`_
 
 
