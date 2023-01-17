@@ -23,6 +23,7 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+
 from authlib.integrations.flask_client import OAuth
 import time
 import logging
@@ -50,21 +51,18 @@ class OpenIDConnect:
         secrets = self.load_secrets(app)
         self.client_secrets = list(secrets.values())[0]
 
-        app.config.setdefault("OIDC_VALID_ISSUERS", self.client_secrets["issuer"])
+        app.config.setdefault("OIDC_ISSUER", self.client_secrets["issuer"])
         app.config.setdefault("OIDC_CLIENT_ID", self.client_secrets["client_id"])
         app.config.setdefault("OIDC_CLIENT_SECRET", self.client_secrets["client_secret"])
         app.config.setdefault("OIDC_USERINFO_URL", self.client_secrets["userinfo_uri"])
-        app.config.setdefault("OIDC_INTROSPECTION_AUTH_METHOD", "client_secret_post")
-        app.config.setdefault("OIDC_CALLBACK_ROUTE", "/oidc_callback")
-
         app.config.setdefault("OIDC_SCOPES", "openid profile email")
-        if not 'openid' in app.config['OIDC_SCOPES']:
-            raise ValueError('The value "openid" must be in the OIDC_SCOPES')
+        app.config.setdefault("OIDC_CLIENT_AUTH_METHOD", "client_secret_post")
+        app.config.setdefault("OIDC_OPENID_CALLBACK", "/oidc_callback")
 
         #app.config.from_file(app.config["OIDC_CLIENT_SECRETS"], load=json.load)
         app.config.setdefault(
             "OIDC_SERVER_METADATA_URL",
-            f"{app.config['OIDC_VALID_ISSUERS']}/.well-known/openid-configuration",
+            f"{app.config['OIDC_ISSUER']}/.well-known/openid-configuration",
         )
 
         self.oauth = OAuth(app)
@@ -73,11 +71,11 @@ class OpenIDConnect:
             server_metadata_url=app.config["OIDC_SERVER_METADATA_URL"],
             client_kwargs={
                 "scope": app.config["OIDC_SCOPES"],
-                "token_endpoint_auth_method": app.config["OIDC_INTROSPECTION_AUTH_METHOD"],
+                "token_endpoint_auth_method": app.config["OIDC_CLIENT_AUTH_METHOD"],
             },
         )
 
-        app.route(app.config["OIDC_CALLBACK_ROUTE"])(self._oidc_callback)
+        app.route(app.config["OIDC_OPENID_CALLBACK"])(self._oidc_callback)
         app.before_request(self._before_request)
         app.after_request(self._after_request)
 
@@ -98,7 +96,6 @@ class OpenIDConnect:
     def _oidc_callback(self):
         try:
             session["token"] = self.oauth.oidc.authorize_access_token()
-            g.oidc_token_info = session.get("token")
         except AttributeError:
             raise
         return redirect("/")
@@ -106,7 +103,6 @@ class OpenIDConnect:
     def check_token_expiry(self):
         try:
             token = session.get("token")
-            g.oidc_token_info = session.get("token")
             if token:
                 if session.get("token")["expires_at"] - 60 < int(time.time()):
                     self.logout()
@@ -189,4 +185,3 @@ class OpenIDConnect:
         session.pop("token", None)
         session.pop("userinfo", None)
         return redirect("/")
-
