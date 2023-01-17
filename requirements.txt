@@ -1,4 +1,2 @@
 Flask
-PyJWT
-oauth2client
-six
+Authlib
