@@ -23,7 +23,6 @@ setup(
         'Flask',
         'Authlib',
         'requests',
-        'six',
     ],
     tests_require=['nose', 'mock'],
     entry_points={

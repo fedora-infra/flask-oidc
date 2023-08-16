@@ -1,4 +1,0 @@
-Flask
-Authlib
-requests
-six
