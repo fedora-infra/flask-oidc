@@ -280,16 +280,6 @@ The full API reference:
 .. automodule:: flask_oidc
    :members:
 
-Discovery
----------
-.. automodule:: flask_oidc.discovery
-   :members:
-
-Registration
-------------
-.. automodule:: flask_oidc.registration
-   :members:
-
 
 .. _Flask: http://flask.pocoo.org/
 .. _OpenID Connect: https://openid.net/connect/
