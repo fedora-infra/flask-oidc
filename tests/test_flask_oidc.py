@@ -291,7 +291,10 @@ def test_need_token_invalid(client, mocked_responses):
     assert resp.status_code == 401
     assert resp.json == {
         "error": "invalid_token",
-        "error_description": "The access token provided is expired, revoked, malformed, or invalid for other reasons.",
+        "error_description": (
+            "The access token provided is expired, revoked, malformed, or invalid "
+            "for other reasons."
+        ),
     }
 
 
@@ -320,13 +323,19 @@ def test_need_absent_scope(client, mocked_responses):
     assert resp.status_code == 403
     assert resp.json == {
         "error": "insufficient_scope",
-        "error_description": "The request requires higher privileges than provided by the access token.",
+        "error_description": (
+            "The request requires higher privileges than provided by the access token."
+        ),
     }
 
 
 def test_introspection_unsupported(client, mocked_responses, oidc_server_metadata):
     metadata_without_introspection = oidc_server_metadata.copy()
     del metadata_without_introspection["introspection_endpoint"]
-    mocked_responses.replace(responses.GET, "https://test/openidc/.well-known/openid-configuration", json=metadata_without_introspection)
+    mocked_responses.replace(
+        responses.GET,
+        "https://test/openidc/.well-known/openid-configuration",
+        json=metadata_without_introspection,
+    )
     with pytest.raises(RuntimeError):
         client.get("/need-token", headers={"Authorization": "Bearer dummy-token"})

@@ -132,7 +132,10 @@ class IntrospectTokenValidator(BaseIntrospectTokenValidator):
         oauth = g._oidc_auth
         metadata = oauth.load_server_metadata()
         if "introspection_endpoint" not in metadata:
-            raise RuntimeError("Can't validate the token because the server does not support introspection.")
+            raise RuntimeError(
+                "Can't validate the token because the server does not support "
+                "introspection."
+            )
         with oauth._get_oauth_client(**metadata) as session:
             response = session.introspect_token(
                 metadata["introspection_endpoint"], token=token_string
