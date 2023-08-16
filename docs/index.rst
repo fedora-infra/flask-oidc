@@ -110,8 +110,12 @@ Registration
 
 To be able to use an OpenID Provider, you will need to register your client
 with them.
-If the Provider you want to use supports Dynamic Registration, you can execute
-``oidc-register https://myprovider.example.com/ https://myapplication.example.com/``
+If the Provider you want to use supports Dynamic Registration, you can install
+the `oidc-register package <https://pypi.org/project/oidc-register/>`_ and
+execute::
+
+    oidc-register https://myprovider.example.com/ https://myapplication.example.com/authorize
+
 and the full client_secrets.json will be generated for you, and you are ready
 to start.
 
