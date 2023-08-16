@@ -32,7 +32,17 @@ import logging
 import json
 from functools import wraps
 from urllib.parse import urlparse
-from flask import request, session, redirect, url_for, g, current_app, abort, flash, Blueprint
+from flask import (
+    request,
+    session,
+    redirect,
+    url_for,
+    g,
+    current_app,
+    abort,
+    flash,
+    Blueprint,
+)
 
 
 __all__ = ["OpenIDConnect"]
@@ -95,13 +105,20 @@ def logout_view():
 
 class OpenIDConnect:
     def __init__(
-        self, app=None, credentials_store=None, http=None, time=None, urandom=None, prefix=None,
+        self,
+        app=None,
+        credentials_store=None,
+        http=None,
+        time=None,
+        urandom=None,
+        prefix=None,
     ):
         for param_name in ("credentials_store", "http", "time", "urandom"):
             if locals()[param_name] is not None:
                 warnings.warn(
                     f"The {param_name!r} attibute is no longer used.",
-                    DeprecationWarning, stacklevel=2
+                    DeprecationWarning,
+                    stacklevel=2,
                 )
         self._prefix = prefix
         if app is not None:
@@ -113,13 +130,15 @@ class OpenIDConnect:
 
         app.config.setdefault("OIDC_VALID_ISSUERS", self.client_secrets["issuer"])
         app.config.setdefault("OIDC_CLIENT_ID", self.client_secrets["client_id"])
-        app.config.setdefault("OIDC_CLIENT_SECRET", self.client_secrets["client_secret"])
+        app.config.setdefault(
+            "OIDC_CLIENT_SECRET", self.client_secrets["client_secret"]
+        )
         app.config.setdefault("OIDC_USERINFO_URL", self.client_secrets["userinfo_uri"])
         app.config.setdefault("OIDC_INTROSPECTION_AUTH_METHOD", "client_secret_post")
         app.config.setdefault("OIDC_CALLBACK_ROUTE", "/oidc_callback")
 
         app.config.setdefault("OIDC_SCOPES", "openid profile email")
-        if not 'openid' in app.config['OIDC_SCOPES']:
+        if not "openid" in app.config["OIDC_SCOPES"]:
             raise ValueError('The value "openid" must be in the OIDC_SCOPES')
 
         app.config.setdefault(
@@ -133,7 +152,9 @@ class OpenIDConnect:
             server_metadata_url=app.config["OIDC_SERVER_METADATA_URL"],
             client_kwargs={
                 "scope": app.config["OIDC_SCOPES"],
-                "token_endpoint_auth_method": app.config["OIDC_INTROSPECTION_AUTH_METHOD"],
+                "token_endpoint_auth_method": app.config[
+                    "OIDC_INTROSPECTION_AUTH_METHOD"
+                ],
             },
         )
 
@@ -144,7 +165,7 @@ class OpenIDConnect:
 
     def load_secrets(self, app):
         # Load client_secrets.json to pre-initialize some configuration
-        content_or_filepath = app.config['OIDC_CLIENT_SECRETS']
+        content_or_filepath = app.config["OIDC_CLIENT_SECRETS"]
         if isinstance(content_or_filepath, dict):
             return content_or_filepath
         else:
@@ -167,9 +188,10 @@ class OpenIDConnect:
             DeprecationWarning,
             stacklevel=2,
         )
-        return redirect("{url}?{qs}".format(
-            url=url_for("oidc_auth.authorize"),
-            qs=urlparse(request.url).query)
+        return redirect(
+            "{url}?{qs}".format(
+                url=url_for("oidc_auth.authorize"), qs=urlparse(request.url).query
+            )
         )
 
     def check_token_expiry(self):

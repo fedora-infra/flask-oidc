@@ -60,6 +60,8 @@ def create_app(config, oidc_overrides=None):
             rendered_response = json.dumps(inner_response)
         return rendered_response
 
-    app.add_url_rule("/external_api", view_func=externally_rendered_api, methods=["GET", "POST"])
+    app.add_url_rule(
+        "/external_api", view_func=externally_rendered_api, methods=["GET", "POST"]
+    )
 
     return app

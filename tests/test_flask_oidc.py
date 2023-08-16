@@ -31,13 +31,13 @@ def test_signin(test_app, client, mocked_responses, dummy_token):
     mocked_responses.get("https://test/openidc/UserInfo", json={"nickname": "dummy"})
 
     resp = client.get("/")
-    assert resp.status_code == 302, (
-        f"Expected redirect to /login (response status was {resp.status})"
-    )
+    assert (
+        resp.status_code == 302
+    ), f"Expected redirect to /login (response status was {resp.status})"
     resp = client.get(resp.location)
-    assert resp.status_code == 302, (
-        f"Expected redirect to IdP (response status was {resp.status})"
-    )
+    assert (
+        resp.status_code == 302
+    ), f"Expected redirect to IdP (response status was {resp.status})"
     assert "state=" in resp.location
     state = dict(url_decode(urlparse(resp.location).query))["state"]
     assert state is not None
@@ -45,13 +45,13 @@ def test_signin(test_app, client, mocked_responses, dummy_token):
     # the app should now contact the IdP
     # to exchange that auth code for credentials
     resp = client.get(callback_url_for(resp))
-    assert resp.status_code == 302, (
-        f"Expected redirect to destination (response status was {resp.status})"
-    )
+    assert (
+        resp.status_code == 302
+    ), f"Expected redirect to destination (response status was {resp.status})"
     location = urlsplit(resp.location)
-    assert location.path == "/", (
-        f"Expected redirect to destination (unexpected path {location.path})"
-    )
+    assert (
+        location.path == "/"
+    ), f"Expected redirect to destination (unexpected path {location.path})"
 
     token_query = parse_qs(mocked_responses.calls[0][0].body)
     assert token_query == {
@@ -72,7 +72,9 @@ def test_signin(test_app, client, mocked_responses, dummy_token):
 
 
 def test_authorize_error(client):
-    resp = client.get("http://localhost/authorize?error=dummy_error&error_description=Dummy+Error")
+    resp = client.get(
+        "http://localhost/authorize?error=dummy_error&error_description=Dummy+Error"
+    )
     assert resp.status_code == 401
     assert "<p>dummy_error: Dummy Error</p>" in resp.get_data(as_text=True)
 
