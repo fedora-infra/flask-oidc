@@ -1,7 +1,3 @@
-Authlib
-pytest-django
 pytest
-six
-nose
-requests
-httplib2
+pytest-cov
+responses

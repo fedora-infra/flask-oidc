@@ -1,3 +1,4 @@
+import os
 import codecs
 import json
 import time
@@ -6,58 +7,12 @@ from unittest import mock
 from urllib.parse import parse_qs, urlencode, urlparse, urlsplit
 
 import pytest
+import flask
+import responses
 from authlib.common.urls import url_decode
-from flask import session
+from werkzeug.exceptions import Unauthorized
 
-from . import app
-from .authlib_utils import get_bearer_token, mock_send_value
-
-last_request = None
-
-
-@pytest.fixture(scope="session")
-def client_secrets():
-    """The parsed contents of `client_secrets.json`."""
-    with resource_stream(__name__, "client_secrets.json") as f:
-        return json.load(codecs.getreader("utf-8")(f))["web"]
-
-
-@pytest.fixture(scope="session")
-def oidc_server_metadata(client_secrets):
-    """IdP server metadata used in tests."""
-    base_url = client_secrets["issuer"].rstrip("/")
-    return {
-        "issuer": f"{base_url}/",
-        "authorization_endpoint": f"{base_url}/Authorization",
-        "token_endpoint": f"{base_url}/Token",
-        "userinfo_endpoint": f"{base_url}/UserInfo",
-        # "jwks_uri": f"{base_url}/Jwks",
-    }
-
-
-@pytest.fixture
-def test_app(isolate_app_globals, oidc_server_metadata):
-    """A Flask app object set up for testing."""
-    test_app = app.create_app(
-        {
-            "SECRET_KEY": "SEEEKRIT",
-            "TESTING": True,
-            "OIDC_CLIENT_SECRETS": resource_filename(__name__, "client_secrets.json"),
-        },
-        {},
-    )
-
-    with mock.patch.object(
-        app.oidc.oauth.oidc, "load_server_metadata"
-    ) as load_server_metadata:
-        load_server_metadata.return_value = oidc_server_metadata
-        yield test_app
-
-
-@pytest.fixture
-def test_client(test_app):
-    """A Flask test client for the test app."""
-    return test_app.test_client()
+from flask_oidc import OpenIDConnect
 
 
 def callback_url_for(response):
@@ -65,136 +20,203 @@ def callback_url_for(response):
     Take a redirect to the IdP and turn it into a redirect from the IdP.
     :return: The URL that the IdP would have redirected the user to.
     """
-    location = urlsplit(response.headers["Location"])
+    location = urlparse(response.location)
     query = parse_qs(location.query)
-    state = query["state"][0]
-    callback_url = "/oidc_callback?" + urlencode(
-        {"state": state, "code": "mock_auth_code"}
+    return f"{query['redirect_uri'][0]}?state={query['state'][0]}&code=mock_auth_code"
+
+
+def test_signin(test_app, client, mocked_responses, dummy_token):
+    """Happy path authentication test."""
+    mocked_responses.post("https://test/openidc/Token", json=dummy_token)
+    mocked_responses.get("https://test/openidc/UserInfo", json={"nickname": "dummy"})
+
+    resp = client.get("/")
+    assert resp.status_code == 302, (
+        f"Expected redirect to /login (response status was {resp.status})"
     )
-    return callback_url
+    resp = client.get(resp.location)
+    assert resp.status_code == 302, (
+        f"Expected redirect to IdP (response status was {resp.status})"
+    )
+    assert "state=" in resp.location
+    state = dict(url_decode(urlparse(resp.location).query))["state"]
+    assert state is not None
+
+    # the app should now contact the IdP
+    # to exchange that auth code for credentials
+    resp = client.get(callback_url_for(resp))
+    assert resp.status_code == 302, (
+        f"Expected redirect to destination (response status was {resp.status})"
+    )
+    location = urlsplit(resp.location)
+    assert location.path == "/", (
+        f"Expected redirect to destination (unexpected path {location.path})"
+    )
+
+    token_query = parse_qs(mocked_responses.calls[0][0].body)
+    assert token_query == {
+        "grant_type": ["authorization_code"],
+        "redirect_uri": ["http://localhost/authorize"],
+        "code": ["mock_auth_code"],
+        "client_id": ["MyClient"],
+        "client_secret": ["MySecret"],
+    }
+
+    # Let's get the at and rt
+    resp = client.get("/at")
+    assert resp.status_code == 200
+    assert resp.get_data(as_text=True) == "dummy_access_token"
+    resp = client.get("/rt")
+    assert resp.status_code == 200
+    assert resp.get_data(as_text=True) == "dummy_refresh_token"
 
 
-@mock.patch("time.time", mock.Mock(return_value=time.time()))
-def test_signin(test_app, test_client):
-    """
-    Happy path authentication test.
-    """
-    with test_app.test_request_context():
-        # make an unauthenticated request,
-        # which should result in a redirect to the IdP
-        r1 = test_client.get("/")
-        assert r1.status_code == 302, (
-            "Expected redirect to IdP "
-            "(response status was {response.status})".format(response=r1)
-        )
-        url = r1.headers.get("Location")
-        assert "state=" in url
-        state = dict(url_decode(urlparse(url).query))["state"]
-        assert state is not None
-        #data = session[f"_state_oidc_{state}"]
-        data = session
-
-    with test_app.test_request_context(path=f"/?code=a&state={state}"), mock.patch(
-        "requests.sessions.Session.send"
-    ) as send:
-        # session is cleared after exiting test context
-        session[f"_state_oidc_{state}"] = data
-
-        send.return_value = mock_send_value(get_bearer_token())
-
-        # the app should now contact the IdP
-        # to exchange that auth code for credentials
-        r2 = test_client.get(callback_url_for(r1))
-        assert r2.status_code == 302, (
-            "Expected redirect to destination "
-            "(response status was {response.status})".format(response=r2)
-        )
-        r2location = urlsplit(r2.headers["Location"])
-        assert r2location.path == "/", (
-            "Expected redirect to destination "
-            "(unexpected path {location.path})".format(location=r2location)
-        )
-
-       # # Let's get the at and rt
-       # r3 = test_client.get("/at")
-       # assert r3.status_code == 200, "Expected access token to succeed"
-       # page_text = "".join(codecs.iterdecode(r3.response, "utf-8"))
-       # assert page_text == "mock_access_token", "Access token expected"
-       # r4 = test_client.get("/rt")
-       # assert r4.status_code == 200, "Expected refresh token to succeed"
-       # page_text = "".join(codecs.iterdecode(r4.response, "utf-8"))
-       # assert page_text == "mock_refresh_token", "Refresh token expected"
+def test_authorize_error(client):
+    resp = client.get("http://localhost/authorize?error=dummy_error&error_description=Dummy+Error")
+    assert resp.status_code == 401
+    assert "<p>dummy_error: Dummy Error</p>" in resp.get_data(as_text=True)
 
 
-## @mock.patch('httplib2.Http', MockHttp)
-#def test_refresh(test_client):
-#    """
-#    Test token expiration and refresh.
-#    """
-#    with mock.patch("time.time", mock.Mock(return_value=time.time())) as time_1:
-#        # authenticate and get an ID token cookie
-#        auth_redirect = test_client.get("/")
-#        callback_redirect = test_client.get(callback_url_for(auth_redirect))
-#        actual_page = test_client.get(callback_redirect.headers["Location"])
-#        page_text = "".join(codecs.iterdecode(actual_page.response, "utf-8"))
-#        assert page_text == "too many secrets", "Authentication failed"
-#
-#    # app should now try to use the refresh token
-#    with mock.patch("time.time", mock.Mock(return_value=time.time() + 10)) as time_2:
-#        test_client.get("/")
-#        body = parse_qs(last_request["body"])
-#        assert body.get("refresh_token") == [
-#            "mock_refresh_token"
-#        ], "App should have tried to refresh credentials"
+def test_authorize_no_return_url(client, mocked_responses, dummy_token):
+    mocked_responses.post("https://test/openidc/Token", json=dummy_token)
+    mocked_responses.get("https://test/openidc/UserInfo", json={"nickname": "dummy"})
+    with client.session_transaction() as session:
+        session["_state_oidc_dummy_state"] = {"data": {}}
+    resp = client.get("/authorize?state=dummy_state&code=dummy_code")
+    assert resp.status_code == 302
+    assert resp.location == "http://localhost/"
 
 
-#def _check_api_token_handling(test_client, api_path):
-#    """
-#    Test API token acceptance.
-#    """
-#    # Test without a token
-#    resp = test_client.get(api_path)
-#    assert resp.status_code == 401, "Token should be required"
-#    resp = json.loads(resp.get_data().decode("utf-8"))
-#    assert resp["error"] == "invalid_token", "Token should be requested"
-#
-#    # Test with invalid token
-#    resp = test_client.get(api_path + "?access_token=invalid_token")
-#    assert resp.status_code == 401, "Token should be rejected"
-#
-#    # Test with query token
-#    resp = test_client.get(api_path + "?access_token=query_token")
-#    assert resp.status_code == 200, "Token should be accepted"
-#    resp = json.loads(resp.get_data().decode("utf-8"))
-#    assert resp["token"]["sub"] == "valid_sub"
-#
-#    # Test with post token
-#    resp = test_client.post(api_path, data={"access_token": "post_token"})
-#    assert resp.status_code == 200, "Token should be accepted"
-#
-#    # Test with insufficient token
-#    resp = test_client.post(api_path + "?access_token=insufficient_token")
-#    assert resp.status_code == 401, "Token should be refused"
-#    resp = json.loads(resp.get_data().decode("utf-8"))
-#    assert resp["error"] == "invalid_token"
-#
-#    # Test with multiple audiences
-#    resp = test_client.get(api_path + "?access_token=multi_aud_token")
-#    assert resp.status_code == 200, "Token should be accepted"
-#
-#    # Test with token for another audience
-#    resp = test_client.get(api_path + "?access_token=some_elses_token")
-#    assert resp.status_code == 200, "Token should be accepted"
-#    test_client.application.config["OIDC_RESOURCE_CHECK_AUD"] = True
-#    resp = test_client.get(api_path + "?access_token=some_elses_token")
-#    assert resp.status_code == 401, "Token should be refused"
-#
-#
-## @mock.patch('httplib2.Http', MockHttp)
-#def test_api_token(test_client):
-#    _check_api_token_handling(test_client, "/api")
-#
-#
-## @mock.patch('httplib2.Http', MockHttp)
-#def test_api_token_with_external_rendering(test_client):
-#    _check_api_token_handling(test_client, "/external_api")
+def test_logout(client, dummy_token):
+    with client.session_transaction() as session:
+        session["oidc_auth_token"] = dummy_token
+        session["oidc_auth_profile"] = {"nickname": "dummy"}
+    resp = client.get("/logout")
+    assert resp.status_code == 302
+    assert resp.location == "http://localhost/"
+    assert "oidc_auth_token" not in flask.session
+    assert "oidc_auth_profile" not in flask.session
+    flashes = flask.get_flashed_messages()
+    assert len(flashes) == 1
+    assert flashes[0] == "You were successfully logged out."
+
+
+def test_ext_logout(test_app, client, dummy_token):
+    with test_app.test_request_context(path="/somewhere"):
+        flask.session["oidc_auth_token"] = dummy_token
+        flask.session["oidc_auth_profile"] = {"nickname": "dummy"}
+        resp = test_app.oidc_ext.logout(return_to="/somewhere_else")
+    assert resp.location == "/logout?next=%2Fsomewhere_else"
+
+
+def test_logout_expired(client, dummy_token):
+    with client.session_transaction() as session:
+        session["oidc_auth_token"] = dummy_token
+        session["oidc_auth_profile"] = {"nickname": "dummy"}
+    client.get("/logout?reason=expired")
+    flashes = flask.get_flashed_messages()
+    assert len(flashes) == 1
+    assert flashes[0] == "Your session expired, please reconnect."
+
+
+def test_expired_token(client, dummy_token):
+    dummy_token["expires_at"] = int(time.time())
+    with client.session_transaction() as session:
+        session["oidc_auth_token"] = dummy_token
+        session["oidc_auth_profile"] = {"nickname": "dummy"}
+    resp = client.get("/")
+    assert resp.status_code == 302
+    assert resp.location == "/logout?reason=expired"
+    resp = client.get(resp.location)
+
+
+def test_bad_token(client):
+    with client.session_transaction() as session:
+        session["oidc_auth_token"] = "bad_token"
+        session["oidc_auth_profile"] = {"nickname": "dummy"}
+    resp = client.get("/")
+    assert resp.status_code == 500
+    assert "oidc_auth_token" not in flask.session
+    assert "oidc_auth_profile" not in flask.session
+    assert "TypeError: string indices must be integers" in resp.get_data(as_text=True)
+
+
+def test_oidc_callback_route(test_app, client, dummy_token):
+    with pytest.warns(DeprecationWarning):
+        resp = client.get("/oidc_callback?state=dummy-state&code=dummy-code")
+    assert resp.status_code == 302
+    assert resp.location == "/authorize?state=dummy-state&code=dummy-code"
+
+
+def test_user_getinfo(test_app, client, dummy_token):
+    user_info = {"nickname": "dummy"}
+    with test_app.test_request_context(path="/somewhere"):
+        flask.session["oidc_auth_token"] = dummy_token
+        flask.session["oidc_auth_profile"] = user_info
+        with pytest.warns(DeprecationWarning):
+            resp = test_app.oidc_ext.user_getinfo([])
+    assert resp == user_info
+
+
+def test_user_getinfo_anon(test_app, client, dummy_token):
+    with test_app.test_request_context(path="/somewhere"):
+        # User is not authenticated
+        with pytest.warns(DeprecationWarning):
+            with pytest.raises(Unauthorized):
+                test_app.oidc_ext.user_getinfo([])
+
+
+def test_user_getinfo_token(test_app, client, mocked_responses):
+    token = {"access_token": "other-access-token"}
+    mocked_responses.get(
+        "https://test/openidc/UserInfo",
+        json={"nickname": "dummy"},
+        match=[
+            responses.matchers.header_matcher(
+                {"Authorization": "Bearer other-access-token"}
+            )
+        ],
+    )
+    with test_app.test_request_context(path="/somewhere"):
+        resp = test_app.oidc_ext.user_getinfo([], access_token=token)
+    assert resp == {"nickname": "dummy"}
+
+
+def test_user_getfield(test_app, client, dummy_token):
+    user_info = {"nickname": "dummy"}
+    with test_app.test_request_context(path="/somewhere"):
+        flask.session["oidc_auth_token"] = dummy_token
+        flask.session["oidc_auth_profile"] = user_info
+        with pytest.warns(DeprecationWarning):
+            resp = test_app.oidc_ext.user_getfield("nickname")
+    assert resp == "dummy"
+
+
+def test_init_app():
+    app = flask.Flask("dummy")
+    with mock.patch.object(OpenIDConnect, "init_app") as init_app:
+        OpenIDConnect(app)
+    init_app.assert_called_once_with(app)
+
+
+def test_bad_scopes(client_secrets_path):
+    app = flask.Flask("dummy")
+    app.config["OIDC_CLIENT_SECRETS"] = client_secrets_path
+    app.config["OIDC_SCOPES"] = "profile email"
+    with pytest.raises(ValueError):
+        OpenIDConnect(app)
+
+
+def test_inline_client_secrets(client_secrets):
+    app = flask.Flask("dummy")
+    app.config["OIDC_CLIENT_SECRETS"] = {"web": client_secrets}
+    OpenIDConnect(app)
+    assert app.config["OIDC_CLIENT_ID"] == "MyClient"
+
+
+def test_deprecated_params(client_secrets_path):
+    for param_name in ("credentials_store", "http", "time", "urandom"):
+        app = flask.Flask("dummy")
+        app.config["OIDC_CLIENT_SECRETS"] = client_secrets_path
+        with pytest.warns(DeprecationWarning):
+            OpenIDConnect(app, **{param_name: "dummy"})
