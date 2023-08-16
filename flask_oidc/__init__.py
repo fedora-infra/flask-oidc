@@ -32,6 +32,10 @@ from urllib.parse import quote_plus, urlparse
 
 from authlib.integrations.base_client.errors import OAuthError
 from authlib.integrations.flask_client import OAuth
+from authlib.integrations.flask_oauth2 import ResourceProtector
+from authlib.oauth2.rfc7662 import (
+    IntrospectTokenValidator as BaseIntrospectTokenValidator,
+)
 from flask import (
     Blueprint,
     abort,
@@ -120,6 +124,22 @@ def logout_view():
     return redirect(return_to)
 
 
+class IntrospectTokenValidator(BaseIntrospectTokenValidator):
+    """Validates a token using introspection."""
+
+    def introspect_token(self, token_string):
+        """Return the token introspection result."""
+        oauth = g._oidc_auth
+        metadata = oauth.load_server_metadata()
+        if "introspection_endpoint" not in metadata:
+            raise RuntimeError("Can't validate the token because the server does not support introspection.")
+        with oauth._get_oauth_client(**metadata) as session:
+            response = session.introspect_token(
+                metadata["introspection_endpoint"], token=token_string
+            )
+        return response.json()
+
+
 class OpenIDConnect:
     def __init__(
         self,
@@ -138,6 +158,8 @@ class OpenIDConnect:
                     stacklevel=2,
                 )
         self._prefix = prefix
+        self.accept_token = ResourceProtector()
+        self.accept_token.register_token_validator(IntrospectTokenValidator())
         if app is not None:
             self.init_app(app)
 
@@ -174,9 +196,10 @@ class OpenIDConnect:
         if "openid" not in app.config["OIDC_SCOPES"]:
             raise ValueError('The value "openid" must be in the OIDC_SCOPES')
 
+        provider_url = self.client_secrets["issuer"].rstrip("/")
         app.config.setdefault(
             "OIDC_SERVER_METADATA_URL",
-            f"{self.client_secrets['issuer']}/.well-known/openid-configuration",
+            f"{provider_url}/.well-known/openid-configuration",
         )
 
         self.oauth = OAuth(app)

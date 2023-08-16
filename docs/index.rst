@@ -91,10 +91,18 @@ issued by the OpenID Connect provider, just decorate those API functions with
     @app.route('/api')
     @oidc.accept_token()
     def my_api():
-        return json.dumps('Welcome %s' % g.oidc_token_info['sub'])
+        token = g.authlib_server_oauth2_token
+        return json.dumps(f'Welcome {token["sub"]}')
 
-If you are only using this part of flask-oidc, it is suggested to set the
-configuration option `OIDC_RESOURCE_SERVER_ONLY` (new in 1.0.5).
+The :meth:`~flask_oidc.OpenIDConnect.accept_token` decorator also accepts a
+list of required scopes that the token must provide::
+
+    @app.route('/api')
+    @oidc.accept_token(scopes=['profile'])
+    def my_api():
+        token = g.authlib_server_oauth2_token
+        profile = g._oidc_auth.userinfo(token=token)
+        return json.dumps(f'Welcome {profile["fullname"]}')
 
 
 Registration

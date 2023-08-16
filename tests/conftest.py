@@ -1,6 +1,5 @@
 import json
 import time
-from unittest import mock
 
 import pytest
 import responses
@@ -32,6 +31,12 @@ def client_secrets(client_secrets_path):
         return json.load(f)["web"]
 
 
+@pytest.fixture
+def mocked_responses():
+    with responses.RequestsMock(assert_all_requests_are_fired=False) as rsps:
+        yield rsps
+
+
 @pytest.fixture(scope="session")
 def oidc_server_metadata(client_secrets):
     """IdP server metadata used in tests."""
@@ -41,12 +46,15 @@ def oidc_server_metadata(client_secrets):
         "authorization_endpoint": f"{base_url}/Authorization",
         "token_endpoint": f"{base_url}/Token",
         "userinfo_endpoint": f"{base_url}/UserInfo",
+        "introspection_endpoint": f"{base_url}/TokenInfo",
         # "jwks_uri": f"{base_url}/Jwks",
     }
 
 
 @pytest.fixture
-def test_app(oidc_server_metadata, client_secrets_path):
+def test_app(
+    oidc_server_metadata, client_secrets_path, client_secrets, mocked_responses
+):
     """A Flask app object set up for testing."""
     test_app = app.create_app(
         {
@@ -57,17 +65,11 @@ def test_app(oidc_server_metadata, client_secrets_path):
         {},
     )
 
-    with mock.patch.object(
-        app.oidc.oauth.oidc, "load_server_metadata"
-    ) as load_server_metadata:
-        load_server_metadata.return_value = oidc_server_metadata
-        yield test_app
-
-
-@pytest.fixture
-def mocked_responses():
-    with responses.RequestsMock() as rsps:
-        yield rsps
+    base_url = client_secrets["issuer"].rstrip("/")
+    mocked_responses.get(
+        f"{base_url}/.well-known/openid-configuration", json=oidc_server_metadata
+    )
+    yield test_app
 
 
 @pytest.fixture

@@ -41,6 +41,18 @@ def api():
     return json.dumps(raw_api())
 
 
+@bp.route("/need-token")
+@oidc.accept_token()
+def need_token():
+    return "OK"
+
+
+@bp.route("/need-profile")
+@oidc.accept_token(scopes=["profile"])
+def need_profile():
+    return "OK"
+
+
 def create_app(config, oidc_overrides=None):
     oidc_overrides = oidc_overrides or {}
     app = Flask(__name__)

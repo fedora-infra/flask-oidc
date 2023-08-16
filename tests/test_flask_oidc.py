@@ -49,7 +49,7 @@ def test_signin(test_app, client, mocked_responses, dummy_token):
         location.path == "/"
     ), f"Expected redirect to destination (unexpected path {location.path})"
 
-    token_query = parse_qs(mocked_responses.calls[0][0].body)
+    token_query = parse_qs(mocked_responses.calls[1][0].body)
     assert token_query == {
         "grant_type": ["authorization_code"],
         "redirect_uri": ["http://localhost/authorize"],
@@ -255,3 +255,78 @@ def test_custom_callback(client_secrets_path):
     ext = OpenIDConnect(app)
     with pytest.raises(ValueError):
         ext.custom_callback(None)
+
+
+def test_need_token(client, mocked_responses):
+    mocked_responses.post(
+        "https://test/openidc/TokenInfo",
+        json={
+            "active": True,
+            "scope": "openid",
+        },
+    )
+    resp = client.get("/need-token", headers={"Authorization": "Bearer dummy-token"})
+    assert resp.status_code == 200
+    assert resp.get_data(as_text=True) == "OK"
+
+
+def test_need_token_no_token(client, mocked_responses):
+    resp = client.get("/need-token")
+    assert resp.status_code == 401
+    assert resp.json == {
+        "error": "missing_authorization",
+        "error_description": 'Missing "Authorization" in headers.',
+    }
+
+
+def test_need_token_invalid(client, mocked_responses):
+    mocked_responses.post(
+        "https://test/openidc/TokenInfo",
+        json={
+            "active": False,
+            "scope": "openid",
+        },
+    )
+    resp = client.get("/need-token", headers={"Authorization": "Bearer dummy-token"})
+    assert resp.status_code == 401
+    assert resp.json == {
+        "error": "invalid_token",
+        "error_description": "The access token provided is expired, revoked, malformed, or invalid for other reasons.",
+    }
+
+
+def test_need_profile(client, mocked_responses):
+    mocked_responses.post(
+        "https://test/openidc/TokenInfo",
+        json={
+            "active": True,
+            "scope": "openid profile",
+        },
+    )
+    resp = client.get("/need-profile", headers={"Authorization": "Bearer dummy-token"})
+    assert resp.status_code == 200
+    assert resp.get_data(as_text=True) == "OK"
+
+
+def test_need_absent_scope(client, mocked_responses):
+    mocked_responses.post(
+        "https://test/openidc/TokenInfo",
+        json={
+            "active": True,
+            "scope": "openid",
+        },
+    )
+    resp = client.get("/need-profile", headers={"Authorization": "Bearer dummy-token"})
+    assert resp.status_code == 403
+    assert resp.json == {
+        "error": "insufficient_scope",
+        "error_description": "The request requires higher privileges than provided by the access token.",
+    }
+
+
+def test_introspection_unsupported(client, mocked_responses, oidc_server_metadata):
+    metadata_without_introspection = oidc_server_metadata.copy()
+    del metadata_without_introspection["introspection_endpoint"]
+    mocked_responses.replace(responses.GET, "https://test/openidc/.well-known/openid-configuration", json=metadata_without_introspection)
+    with pytest.raises(RuntimeError):
+        client.get("/need-token", headers={"Authorization": "Bearer dummy-token"})
