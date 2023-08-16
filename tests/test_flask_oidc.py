@@ -247,3 +247,11 @@ def test_obsolete_config_params(client_secrets_path):
     with mock.patch.dict(app.config, {"OIDC_ID_TOKEN_COOKIE_PATH": "/path"}):
         with pytest.warns(DeprecationWarning):
             OpenIDConnect(app)
+
+
+def test_custom_callback(client_secrets_path):
+    app = flask.Flask("dummy")
+    app.config["OIDC_CLIENT_SECRETS"] = client_secrets_path
+    ext = OpenIDConnect(app)
+    with pytest.raises(ValueError):
+        ext.custom_callback(None)

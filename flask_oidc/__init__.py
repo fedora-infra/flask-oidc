@@ -341,3 +341,6 @@ class OpenIDConnect:
         """
         return_to = return_to or request.root_url
         return redirect(url_for("oidc_auth.logout", next=return_to))
+
+    def custom_callback(self, *args, **kwargs):
+        raise ValueError("This feature has been dropped")
