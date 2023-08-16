@@ -212,9 +212,20 @@ def test_inline_client_secrets(client_secrets):
     assert app.config["OIDC_CLIENT_ID"] == "MyClient"
 
 
-def test_deprecated_params(client_secrets_path):
+def test_deprecated_class_params(client_secrets_path):
     for param_name in ("credentials_store", "http", "time", "urandom"):
         app = flask.Flask("dummy")
         app.config["OIDC_CLIENT_SECRETS"] = client_secrets_path
         with pytest.warns(DeprecationWarning):
             OpenIDConnect(app, **{param_name: "dummy"})
+
+
+def test_obsolete_config_params(client_secrets_path):
+    app = flask.Flask("dummy")
+    app.config["OIDC_CLIENT_SECRETS"] = client_secrets_path
+    with mock.patch.dict(app.config, {"OIDC_GOOGLE_APPS_DOMAIN": "example.com"}):
+        with pytest.raises(ValueError):
+            OpenIDConnect(app)
+    with mock.patch.dict(app.config, {"OIDC_ID_TOKEN_COOKIE_PATH": "/path"}):
+        with pytest.warns(DeprecationWarning):
+            OpenIDConnect(app)

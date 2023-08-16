@@ -46,6 +46,23 @@ from flask import (
 
 __all__ = ["OpenIDConnect"]
 
+_CONFIG_REMOVED = (
+    "OIDC_GOOGLE_APPS_DOMAIN",
+    "OIDC_REQUIRE_VERIFIED_EMAIL",
+    "OIDC_RESOURCE_CHECK_AUD",
+    "OIDC_VALID_ISSUERS",
+)
+_CONFIG_DEPRECATED = (
+    "OIDC_ID_TOKEN_COOKIE_NAME",
+    "OIDC_ID_TOKEN_COOKIE_PATH",
+    "OIDC_ID_TOKEN_COOKIE_TTL",
+    "OIDC_COOKIE_SECURE",
+    "OIDC_OPENID_REALM",
+    "OIDC_RESOURCE_SERVER_ONLY",
+    "OVERWRITE_REDIRECT_URI",
+    "OIDC_CALLBACK_ROUTE",
+)
+
 logger = logging.getLogger(__name__)
 
 auth_routes = Blueprint("oidc_auth", __name__)
@@ -124,10 +141,24 @@ class OpenIDConnect:
             self.init_app(app)
 
     def init_app(self, app):
+        # Removed features, die if still there
+        for param in _CONFIG_REMOVED:
+            if param in app.config:
+                raise ValueError(
+                    f"The {param!r} configuration value is no longer enforced."
+                )
+        # Deprecated config values, harmless if still there
+        for param in _CONFIG_DEPRECATED:
+            if param in app.config:
+                warnings.warn(
+                    f"The {param!r} configuration value is deprecated and ignored.",
+                    DeprecationWarning,
+                    stacklevel=2,
+                )
+
         secrets = self.load_secrets(app)
         self.client_secrets = list(secrets.values())[0]
 
-        app.config.setdefault("OIDC_VALID_ISSUERS", self.client_secrets["issuer"])
         app.config.setdefault("OIDC_CLIENT_ID", self.client_secrets["client_id"])
         app.config.setdefault(
             "OIDC_CLIENT_SECRET", self.client_secrets["client_secret"]
@@ -142,7 +173,7 @@ class OpenIDConnect:
 
         app.config.setdefault(
             "OIDC_SERVER_METADATA_URL",
-            f"{app.config['OIDC_VALID_ISSUERS']}/.well-known/openid-configuration",
+            f"{self.client_secrets['issuer']}/.well-known/openid-configuration",
         )
 
         self.oauth = OAuth(app)
