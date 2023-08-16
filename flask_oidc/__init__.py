@@ -56,7 +56,8 @@ def authorize_view():
     except OAuthError as e:
         abort(401, str(e))
     profile = g._oidc_auth.userinfo(token=token)
-    session["token"] = token
+    session["oidc_auth_token"] = token
+    session["oidc_auth_profile"] = profile
     g.oidc_id_token = token
     try:
         return_to = session["next"]
@@ -173,15 +174,14 @@ class OpenIDConnect:
 
     def check_token_expiry(self):
         try:
-            token = session.get("token")
-            g.oidc_token_info = session.get("token")
+            token = session.get("oidc_auth_token")
             if not token:
                 return
             if token["expires_at"] - 60 < int(time.time()):
                 return redirect("{}?reason=expired".format(url_for("oidc_auth.logout")))
         except Exception as e:
-            session.pop("token", None)
-            session.pop("userinfo", None)
+            session.pop("oidc_auth_token", None)
+            session.pop("oidc_auth_profile", None)
             abort(500, f"{e.__class__.__name__}: {e}")
 
     @property
@@ -194,7 +194,7 @@ class OpenIDConnect:
 
         .. versionadded:: 1.0
         """
-        return session.get("token") is not None
+        return session.get("oidc_auth_token") is not None
 
     def _retrieve_userinfo(self, access_token=None):
         """
