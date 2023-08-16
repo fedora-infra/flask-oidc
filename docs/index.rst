@@ -196,13 +196,11 @@ This is a list of all settings supported in the current release.
     'client_secret_basic', or 'bearer'.  Defaults to 'client_secret_post'.
 
 
-API References
---------------
+API Reference
+-------------
 
-The full API reference:
-
-.. automodule:: flask_oidc
-   :members:
+.. toctree::
+   _source/flask_oidc
 
 
 .. _Flask: http://flask.pocoo.org/
