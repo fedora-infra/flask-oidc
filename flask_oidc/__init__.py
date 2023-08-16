@@ -152,7 +152,7 @@ class OpenIDConnect:
                 return json.load(f)
 
     def _before_request(self):
-        self.check_token_expiry()
+        return self.check_token_expiry()
 
     def _after_request(self, response):
         return response
