@@ -143,7 +143,7 @@ the following details:
     client_secret_post
 
   Redirect URI
-    <APPLICATION_URL>/oidc_callback
+    <APPLICATION_URL>/authorize
 
 
 You will also need to manually craft your client_secrets.json.
