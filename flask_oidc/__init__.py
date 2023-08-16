@@ -222,6 +222,26 @@ class OpenIDConnect:
         """
         return self.user_getinfo([field]).get(field)
 
+    def get_access_token(self):
+        """Method to return the current requests' access_token.
+
+        :returns: Access token or None
+        :rtype: str
+
+        .. versionadded:: 1.2
+        """
+        return session.get("oidc_auth_token", {}).get("access_token")
+
+    def get_refresh_token(self):
+        """Method to return the current requests' refresh_token.
+
+        :returns: Access token or None
+        :rtype: str
+
+        .. versionadded:: 1.2
+        """
+        return session.get("oidc_auth_token", {}).get("refresh_token")
+
     def require_login(self, view_func):
         """
         Use this to decorate view functions that require a user to be logged
