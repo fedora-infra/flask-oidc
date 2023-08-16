@@ -196,29 +196,31 @@ class OpenIDConnect:
         """
         return session.get("oidc_auth_token") is not None
 
-    def _retrieve_userinfo(self, access_token=None):
-        """
-        Requests extra user information from the Provider's UserInfo and
-        returns the result.
+    def user_getinfo(self, fields, access_token=None):
+        if access_token is not None:
+            return self.oauth.oidc.userinfo(token=access_token)
+        warnings.warn(
+            "The user_getinfo method is deprecated, please use session['oidc_auth_profile']",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        if not self.user_loggedin:
+            abort(401, "User was not authenticated")
+        return session.get("oidc_auth_profile", {})
 
-        :returns: The contents of the UserInfo endpoint.
-        :rtype: dict
+    def user_getfield(self, field, access_token=None):
         """
-        # Cache the info from this request
-        token = session.get("token")
-        userinfo = session.get("userinfo")
-        if userinfo:
-            return userinfo
-        else:
-            try:
-                resp = self.oauth.oidc.get(
-                    current_app.config["OIDC_USERINFO_URL"], token=token
-                )
-                userinfo = resp.json()
-                session["userinfo"] = userinfo
-                return userinfo
-            except Exception:
-                raise
+        Request a single field of information about the user.
+
+        :param field: The name of the field requested.
+        :type field: str
+        :returns: The value of the field. Depending on the type, this may be
+            a string, list, dict, or something else.
+        :rtype: object
+
+        .. versionadded:: 1.0
+        """
+        return self.user_getinfo([field]).get(field)
 
     def require_login(self, view_func):
         """
