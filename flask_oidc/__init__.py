@@ -23,6 +23,7 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+import warnings
 from authlib.integrations.flask_client import OAuth
 import time
 import logging
@@ -43,6 +44,12 @@ class OpenIDConnect:
     def __init__(
         self, app=None, credentials_store=None, http=None, time=None, urandom=None
     ):
+        for param_name in ("credentials_store", "http", "time", "urandom"):
+            if locals()[param_name] is not None:
+                warnings.warn(
+                    f"The {param_name!r} attibute is no longer used.",
+                    DeprecationWarning, stacklevel=2
+                )
         if app is not None:
             self.init_app(app)
 
