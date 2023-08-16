@@ -165,6 +165,7 @@ class OpenIDConnect:
         )
         app.config.setdefault("OIDC_USERINFO_URL", self.client_secrets["userinfo_uri"])
         app.config.setdefault("OIDC_INTROSPECTION_AUTH_METHOD", "client_secret_post")
+        app.config.setdefault("OIDC_CLOCK_SKEW", 60)
         app.config.setdefault("OIDC_CALLBACK_ROUTE", "/oidc_callback")
 
         app.config.setdefault("OIDC_SCOPES", "openid profile email")
@@ -229,7 +230,8 @@ class OpenIDConnect:
             token = session.get("oidc_auth_token")
             if not token:
                 return
-            if token["expires_at"] - 60 < int(time.time()):
+            clock_skew = current_app.config["OIDC_CLOCK_SKEW"]
+            if token["expires_at"] - clock_skew < int(time.time()):
                 return redirect("{}?reason=expired".format(url_for("oidc_auth.logout")))
         except Exception as e:
             session.pop("oidc_auth_token", None)
