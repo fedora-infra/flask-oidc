@@ -122,7 +122,6 @@ class OpenIDConnect:
         if not 'openid' in app.config['OIDC_SCOPES']:
             raise ValueError('The value "openid" must be in the OIDC_SCOPES')
 
-        #app.config.from_file(app.config["OIDC_CLIENT_SECRETS"], load=json.load)
         app.config.setdefault(
             "OIDC_SERVER_METADATA_URL",
             f"{app.config['OIDC_VALID_ISSUERS']}/.well-known/openid-configuration",
@@ -153,6 +152,7 @@ class OpenIDConnect:
                 return json.load(f)
 
     def _before_request(self):
+        g._oidc_auth = self.oauth.oidc
         return self.check_token_expiry()
 
     def _after_request(self, response):
