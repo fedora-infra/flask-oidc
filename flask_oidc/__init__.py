@@ -23,27 +23,26 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-import warnings
-from urllib.parse import quote_plus
-from authlib.integrations.flask_client import OAuth
-from authlib.integrations.base_client.errors import OAuthError
-import time
-import logging
 import json
+import logging
+import time
+import warnings
 from functools import wraps
-from urllib.parse import urlparse
+from urllib.parse import quote_plus, urlparse
+
+from authlib.integrations.base_client.errors import OAuthError
+from authlib.integrations.flask_client import OAuth
 from flask import (
+    Blueprint,
+    abort,
+    current_app,
+    flash,
+    g,
+    redirect,
     request,
     session,
-    redirect,
     url_for,
-    g,
-    current_app,
-    abort,
-    flash,
-    Blueprint,
 )
-
 
 __all__ = ["OpenIDConnect"]
 
@@ -138,7 +137,7 @@ class OpenIDConnect:
         app.config.setdefault("OIDC_CALLBACK_ROUTE", "/oidc_callback")
 
         app.config.setdefault("OIDC_SCOPES", "openid profile email")
-        if not "openid" in app.config["OIDC_SCOPES"]:
+        if "openid" not in app.config["OIDC_SCOPES"]:
             raise ValueError('The value "openid" must be in the OIDC_SCOPES')
 
         app.config.setdefault(
@@ -222,7 +221,8 @@ class OpenIDConnect:
         if access_token is not None:
             return self.oauth.oidc.userinfo(token=access_token)
         warnings.warn(
-            "The user_getinfo method is deprecated, please use session['oidc_auth_profile']",
+            "The user_getinfo method is deprecated, please use "
+            "session['oidc_auth_profile']",
             DeprecationWarning,
             stacklevel=2,
         )

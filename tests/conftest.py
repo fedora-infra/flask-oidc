@@ -4,7 +4,6 @@ from unittest import mock
 
 import pytest
 import responses
-import flask
 from pkg_resources import resource_filename
 
 from . import app

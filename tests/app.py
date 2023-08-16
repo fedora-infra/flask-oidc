@@ -4,7 +4,8 @@ Flask app for testing the OpenID Connect extension.
 
 import json
 
-from flask import Flask, g, Blueprint
+from flask import Blueprint, Flask, g
+
 from flask_oidc import OpenIDConnect
 
 oidc = OpenIDConnect()

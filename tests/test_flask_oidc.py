@@ -1,13 +1,9 @@
-import os
-import codecs
-import json
 import time
-from pkg_resources import resource_filename, resource_stream
 from unittest import mock
-from urllib.parse import parse_qs, urlencode, urlparse, urlsplit
+from urllib.parse import parse_qs, urlparse, urlsplit
 
-import pytest
 import flask
+import pytest
 import responses
 from authlib.common.urls import url_decode
 from werkzeug.exceptions import Unauthorized
