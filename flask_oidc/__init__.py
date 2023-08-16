@@ -39,11 +39,6 @@ __all__ = ["OpenIDConnect"]
 
 logger = logging.getLogger(__name__)
 
-def _json_loads(content):
-    if not isinstance(content, str):
-        content = content.decode('utf-8')
-    return json.loads(content)
-
 auth_routes = Blueprint("oidc_auth", __name__)
 
 
@@ -149,11 +144,12 @@ class OpenIDConnect:
 
     def load_secrets(self, app):
         # Load client_secrets.json to pre-initialize some configuration
-        content = app.config['OIDC_CLIENT_SECRETS']
-        if isinstance(content, dict):
-            return content
+        content_or_filepath = app.config['OIDC_CLIENT_SECRETS']
+        if isinstance(content_or_filepath, dict):
+            return content_or_filepath
         else:
-            return _json_loads(open(content, 'r').read())
+            with open(content_or_filepath) as f:
+                return json.load(f)
 
     def _before_request(self):
         self.check_token_expiry()
