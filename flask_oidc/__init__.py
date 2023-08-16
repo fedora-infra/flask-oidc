@@ -24,12 +24,16 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import warnings
+from urllib.parse import quote_plus
 from authlib.integrations.flask_client import OAuth
+from authlib.integrations.base_client.errors import OAuthError
 import time
 import logging
 import json
 from functools import wraps
-from flask import request, session, redirect, url_for, g, current_app, abort
+from urllib.parse import urlparse
+from flask import request, session, redirect, url_for, g, current_app, abort, flash, Blueprint
+
 
 __all__ = ["OpenIDConnect"]
 
@@ -40,9 +44,62 @@ def _json_loads(content):
         content = content.decode('utf-8')
     return json.loads(content)
 
+auth_routes = Blueprint("oidc_auth", __name__)
+
+
+@auth_routes.route("/login", endpoint="login")
+def login_view():
+    redirect_uri = url_for("oidc_auth.authorize", _external=True)
+    session["next"] = request.args.get("next", request.root_url)
+    return g._oidc_auth.authorize_redirect(redirect_uri)
+
+
+@auth_routes.route("/authorize", endpoint="authorize")
+def authorize_view():
+    try:
+        token = g._oidc_auth.authorize_access_token()
+    except OAuthError as e:
+        abort(401, str(e))
+    profile = g._oidc_auth.userinfo(token=token)
+    session["token"] = token
+    g.oidc_id_token = token
+    try:
+        return_to = session["next"]
+        del session["next"]
+    except KeyError:
+        return_to = request.root_url
+    return redirect(return_to)
+
+
+@auth_routes.route("/logout", endpoint="logout")
+def logout_view():
+    """
+    Request the browser to please forget the cookie we set, to clear the
+    current session.
+
+    Note that as described in [1], this will not log out in the case of a
+    browser that doesn't clear cookies when requested to, and the user
+    could be automatically logged in when they hit any authenticated
+    endpoint.
+
+    [1]: https://github.com/puiterwijk/flask-oidc/issues/5#issuecomment-86187023
+
+    .. versionadded:: 1.0
+    """
+    session.pop("oidc_auth_token", None)
+    session.pop("oidc_auth_profile", None)
+    reason = request.args.get("reason")
+    if reason == "expired":
+        flash("Your session expired, please reconnect.")
+    else:
+        flash("You were successfully logged out.")
+    return_to = request.args.get("next", request.root_url)
+    return redirect(return_to)
+
+
 class OpenIDConnect:
     def __init__(
-        self, app=None, credentials_store=None, http=None, time=None, urandom=None
+        self, app=None, credentials_store=None, http=None, time=None, urandom=None, prefix=None,
     ):
         for param_name in ("credentials_store", "http", "time", "urandom"):
             if locals()[param_name] is not None:
@@ -50,6 +107,7 @@ class OpenIDConnect:
                     f"The {param_name!r} attibute is no longer used.",
                     DeprecationWarning, stacklevel=2
                 )
+        self._prefix = prefix
         if app is not None:
             self.init_app(app)
 
@@ -84,6 +142,7 @@ class OpenIDConnect:
             },
         )
 
+        app.register_blueprint(auth_routes, url_prefix=self._prefix)
         app.route(app.config["OIDC_CALLBACK_ROUTE"])(self._oidc_callback)
         app.before_request(self._before_request)
         app.after_request(self._after_request)
@@ -103,24 +162,31 @@ class OpenIDConnect:
         return response
 
     def _oidc_callback(self):
-        try:
-            session["token"] = self.oauth.oidc.authorize_access_token()
-            g.oidc_token_info = session.get("token")
-        except AttributeError:
-            raise
-        return redirect("/")
+        warnings.warn(
+            "The {callback_url} route is deprecated, please use {authorize_url}".format(
+                callback_url=current_app.config["OIDC_CALLBACK_ROUTE"],
+                authorize_url=url_for("oidc_auth.authorize"),
+            ),
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return redirect("{url}?{qs}".format(
+            url=url_for("oidc_auth.authorize"),
+            qs=urlparse(request.url).query)
+        )
 
     def check_token_expiry(self):
         try:
             token = session.get("token")
             g.oidc_token_info = session.get("token")
-            if token:
-                if session.get("token")["expires_at"] - 60 < int(time.time()):
-                    self.logout()
-        except Exception:
+            if not token:
+                return
+            if token["expires_at"] - 60 < int(time.time()):
+                return redirect("{}?reason=expired".format(url_for("oidc_auth.logout")))
+        except Exception as e:
             session.pop("token", None)
             session.pop("userinfo", None)
-            raise
+            abort(500, f"{e.__class__.__name__}: {e}")
 
     @property
     def user_loggedin(self):
@@ -170,16 +236,17 @@ class OpenIDConnect:
 
         @wraps(view_func)
         def decorated(*args, **kwargs):
-            if session.get("token") is None:
-                redirect_uri = url_for(
-                    "_oidc_callback", _scheme="https", _external=True
+            if not self.user_loggedin:
+                redirect_uri = "{login}?next={here}".format(
+                    login=url_for("oidc_auth.login"),
+                    here=quote_plus(request.url),
                 )
-                return self.oauth.oidc.authorize_redirect(redirect_uri)
+                return redirect(redirect_uri)
             return view_func(*args, **kwargs)
 
         return decorated
 
-    def logout(self):
+    def logout(self, return_to=None):
         """
         Request the browser to please forget the cookie we set, to clear the
         current session.
@@ -193,6 +260,5 @@ class OpenIDConnect:
 
         .. versionadded:: 1.0
         """
-        session.pop("token", None)
-        session.pop("userinfo", None)
-        return redirect("/")
+        return_to = return_to or request.root_url
+        return redirect(url_for("oidc_auth.logout", next=return_to))
