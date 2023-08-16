@@ -1,0 +1,18 @@
+name: CI
+on: [push, pull_request, workflow_dispatch]
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+    container:
+      image: fedorapython/fedora-python-tox:latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Install dependencies
+      run: dnf install -y python-devel python-tox git
+    - name: Mark the directory as safe for git
+      run: git config --global --add safe.directory $PWD
+    - name: Run Tests
+      run: tox
