@@ -85,6 +85,17 @@ def test_authorize_no_return_url(client, mocked_responses, dummy_token):
     assert resp.location == "http://localhost/"
 
 
+def test_authorize_no_user_info(test_app, client, mocked_responses, dummy_token):
+    test_app.config["OIDC_USER_INFO_ENABLED"] = False
+    mocked_responses.post("https://test/openidc/Token", json=dummy_token)
+    with client.session_transaction() as session:
+        session["_state_oidc_dummy_state"] = {"data": {}}
+    resp = client.get("/authorize?state=dummy_state&code=dummy_code")
+    assert resp.status_code == 302
+    assert "oidc_auth_token" in flask.session
+    assert "oidc_auth_profile" not in flask.session
+
+
 def test_logout(client, dummy_token):
     with client.session_transaction() as session:
         session["oidc_auth_token"] = dummy_token
@@ -178,6 +189,13 @@ def test_user_getinfo_token(test_app, client, mocked_responses):
     with test_app.test_request_context(path="/somewhere"):
         resp = test_app.oidc_ext.user_getinfo([], access_token=token)
     assert resp == {"nickname": "dummy"}
+
+
+def test_user_getinfo_disabled(test_app, client, dummy_token):
+    test_app.config["OIDC_USER_INFO_ENABLED"] = False
+    with test_app.test_request_context(path="/somewhere"):
+        with pytest.raises(RuntimeError):
+            test_app.oidc_ext.user_getinfo([])
 
 
 def test_user_getfield(test_app, client, dummy_token):

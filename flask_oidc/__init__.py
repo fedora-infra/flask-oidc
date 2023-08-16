@@ -81,10 +81,11 @@ def authorize_view():
         token = g._oidc_auth.authorize_access_token()
     except OAuthError as e:
         abort(401, str(e))
-    profile = g._oidc_auth.userinfo(token=token)
     session["oidc_auth_token"] = token
-    session["oidc_auth_profile"] = profile
     g.oidc_id_token = token
+    if current_app.config["OIDC_USER_INFO_ENABLED"]:
+        profile = g._oidc_auth.userinfo(token=token)
+        session["oidc_auth_profile"] = profile
     try:
         return_to = session["next"]
         del session["next"]
@@ -164,6 +165,7 @@ class OpenIDConnect:
             "OIDC_CLIENT_SECRET", self.client_secrets["client_secret"]
         )
         app.config.setdefault("OIDC_USERINFO_URL", self.client_secrets["userinfo_uri"])
+        app.config.setdefault("OIDC_USER_INFO_ENABLED", True)
         app.config.setdefault("OIDC_INTROSPECTION_AUTH_METHOD", "client_secret_post")
         app.config.setdefault("OIDC_CLOCK_SKEW", 60)
         app.config.setdefault("OIDC_CALLBACK_ROUTE", "/oidc_callback")
@@ -251,6 +253,10 @@ class OpenIDConnect:
         return session.get("oidc_auth_token") is not None
 
     def user_getinfo(self, fields, access_token=None):
+        if not current_app.config["OIDC_USER_INFO_ENABLED"]:
+            raise RuntimeError(
+                "User info is disabled in configuration (OIDC_USER_INFO_ENABLED)"
+            )
         if access_token is not None:
             return self.oauth.oidc.userinfo(token=access_token)
         warnings.warn(
