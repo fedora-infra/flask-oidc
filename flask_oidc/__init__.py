@@ -199,6 +199,13 @@ class OpenIDConnect:
         app.config.setdefault("OIDC_SCOPES", "openid profile email")
         if "openid" not in app.config["OIDC_SCOPES"]:
             raise ValueError('The value "openid" must be in the OIDC_SCOPES')
+        if isinstance(app.config["OIDC_SCOPES"], (list, tuple)):
+            warnings.warn(
+                "The OIDC_SCOPES configuration value should now be a string",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            app.config["OIDC_SCOPES"] = " ".join(app.config["OIDC_SCOPES"])
 
         provider_url = self.client_secrets["issuer"].rstrip("/")
         app.config.setdefault(

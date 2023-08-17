@@ -215,6 +215,15 @@ def test_init_app():
     init_app.assert_called_once_with(app)
 
 
+def test_scopes_as_list(client_secrets_path):
+    app = flask.Flask("dummy")
+    app.config["OIDC_CLIENT_SECRETS"] = client_secrets_path
+    app.config["OIDC_SCOPES"] = ["openid", "profile", "email"]
+    with pytest.warns():
+        OpenIDConnect(app)
+    assert app.config["OIDC_SCOPES"] == "openid profile email"
+
+
 def test_bad_scopes(client_secrets_path):
     app = flask.Flask("dummy")
     app.config["OIDC_CLIENT_SECRETS"] = client_secrets_path
