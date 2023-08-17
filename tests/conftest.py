@@ -1,9 +1,9 @@
 import json
 import time
+from importlib.resources import path
 
 import pytest
 import responses
-from pkg_resources import resource_filename
 
 from . import app
 
@@ -21,7 +21,8 @@ def dummy_token():
 
 @pytest.fixture(scope="session")
 def client_secrets_path():
-    return resource_filename(__name__, "client_secrets.json")
+    with path("tests", "client_secrets.json") as filepath:
+        yield filepath.as_posix()
 
 
 @pytest.fixture(scope="session")
