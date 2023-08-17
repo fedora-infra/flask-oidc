@@ -8,5 +8,6 @@ coverage
 coverage.xml
 *.egg-info
 dist
+build
 *.pyc
 .tox
