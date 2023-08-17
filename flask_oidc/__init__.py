@@ -84,6 +84,7 @@ def authorize_view():
     try:
         token = g._oidc_auth.authorize_access_token()
     except OAuthError as e:
+        logger.exception("Could not get the access token")
         abort(401, str(e))
     session["oidc_auth_token"] = token
     g.oidc_id_token = token
@@ -264,6 +265,7 @@ class OpenIDConnect:
         except Exception as e:
             session.pop("oidc_auth_token", None)
             session.pop("oidc_auth_profile", None)
+            logger.exception("Could not check token expiration")
             abort(500, f"{e.__class__.__name__}: {e}")
 
     @property
