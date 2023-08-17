@@ -348,3 +348,16 @@ def test_introspection_unsupported(client, mocked_responses, oidc_server_metadat
     )
     with pytest.raises(RuntimeError):
         client.get("/need-token", headers={"Authorization": "Bearer dummy-token"})
+
+
+def test_resource_server_only(client_secrets_path):
+    app = flask.Flask("dummy")
+    app.config["OIDC_CLIENT_SECRETS"] = client_secrets_path
+    app.config["OIDC_RESOURCE_SERVER_ONLY"] = True
+    client = app.test_client()
+    ext = OpenIDConnect(app)
+    with mock.patch.object(ext, "check_token_expiry") as check_token_expiry:
+        for url in ("/oidc_callback", "/login", "/logout", "/authorize"):
+            resp = client.get(url)
+            assert resp.status_code == 404
+        check_token_expiry.assert_not_called()

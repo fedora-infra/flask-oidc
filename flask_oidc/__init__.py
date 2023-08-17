@@ -62,7 +62,6 @@ _CONFIG_DEPRECATED = (
     "OIDC_ID_TOKEN_COOKIE_TTL",
     "OIDC_COOKIE_SECURE",
     "OIDC_OPENID_REALM",
-    "OIDC_RESOURCE_SERVER_ONLY",
     "OVERWRITE_REDIRECT_URI",
     "OIDC_CALLBACK_ROUTE",
 )
@@ -194,6 +193,7 @@ class OpenIDConnect:
         app.config.setdefault("OIDC_USER_INFO_ENABLED", True)
         app.config.setdefault("OIDC_INTROSPECTION_AUTH_METHOD", "client_secret_post")
         app.config.setdefault("OIDC_CLOCK_SKEW", 60)
+        app.config.setdefault("OIDC_RESOURCE_SERVER_ONLY", False)
         app.config.setdefault("OIDC_CALLBACK_ROUTE", "/oidc_callback")
 
         app.config.setdefault("OIDC_SCOPES", "openid profile email")
@@ -225,8 +225,9 @@ class OpenIDConnect:
             },
         )
 
-        app.register_blueprint(auth_routes, url_prefix=self._prefix)
-        app.route(app.config["OIDC_CALLBACK_ROUTE"])(self._oidc_callback)
+        if not app.config["OIDC_RESOURCE_SERVER_ONLY"]:
+            app.register_blueprint(auth_routes, url_prefix=self._prefix)
+            app.route(app.config["OIDC_CALLBACK_ROUTE"])(self._oidc_callback)
         app.before_request(self._before_request)
         app.after_request(self._after_request)
 
@@ -241,7 +242,8 @@ class OpenIDConnect:
 
     def _before_request(self):
         g._oidc_auth = self.oauth.oidc
-        return self.check_token_expiry()
+        if not current_app.config["OIDC_RESOURCE_SERVER_ONLY"]:
+            return self.check_token_expiry()
 
     def _after_request(self, response):
         return response

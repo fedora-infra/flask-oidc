@@ -194,6 +194,11 @@ This is a list of all settings supported in the current release.
     by the Identity Provider in addition to the token information.
     Defaults to True.
 
+  OIDC_RESOURCE_SERVER_ONLY
+    Boolean whether to disable the OpenID Client parts. You can enable this
+    in applications where you only use the resource server parts (accept_token)
+    and will skip checking for any cookies.
+
   OIDC_INTROSPECTION_AUTH_METHOD
     String that sets the authentication method used when communicating with
     the token_introspection_uri.  Valid values are 'client_secret_post',
