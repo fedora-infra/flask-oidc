@@ -45,8 +45,10 @@ Deprecated
   :meth:`~flask_oidc.OpenIDConnect.user_getfield` methods are deprecated,
   you'll find all the user information in the session:
   ``session["oidc_auth_profile"]``.
-  If you need to get the user information using a specific token, you can do so
-  by calling ``g._oidc_auth.userinfo(token=token)``.
+  If you need to get the user information using a specific token, you can
+  do so by calling ``g._oidc_auth.userinfo(token=token)``.
+- The :meth:`~flask_oidc.OpenIDConnect.logout` method is deprecated, just
+  redirect to the ``/logout`` view.
 
 
 Changed

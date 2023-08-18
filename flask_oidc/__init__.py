@@ -385,6 +385,13 @@ class OpenIDConnect:
         .. versionadded:: 1.0
         """
         return_to = return_to or request.root_url
+        warnings.warn(
+            "The logout method is deprecated, just redirect to {}".format(
+                url_for("oidc_auth.logout", next=return_to)
+            ),
+            DeprecationWarning,
+            stacklevel=2,
+        )
         return redirect(url_for("oidc_auth.logout", next=return_to))
 
     def custom_callback(self, *args, **kwargs):

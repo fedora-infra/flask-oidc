@@ -114,7 +114,8 @@ def test_ext_logout(test_app, client, dummy_token):
     with test_app.test_request_context(path="/somewhere"):
         flask.session["oidc_auth_token"] = dummy_token
         flask.session["oidc_auth_profile"] = {"nickname": "dummy"}
-        resp = test_app.oidc_ext.logout(return_to="/somewhere_else")
+        with pytest.warns():
+            resp = test_app.oidc_ext.logout(return_to="/somewhere_else")
     assert resp.location == "/logout?next=/somewhere_else"
 
 
