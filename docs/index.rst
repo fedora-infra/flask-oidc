@@ -3,8 +3,11 @@ Flask-OIDC
 
 Flask-OIDC is an extension to `Flask`_ that allows you to add `OpenID Connect`_
 based authentication to your website in a matter of minutes. It depends
-on Flask and `oauth2client`_. You can install the requirements from
-PyPI with `easy_install` or `pip` or download them by hand.
+on Flask and `Authlib`_. You can install the requirements from PyPI with `pip`.
+
+.. _Flask: http://flask.pocoo.org/
+.. _OpenID Connect: https://openid.net/connect/
+.. _Authlib: https://authlib.org/
 
 
 Features
@@ -41,26 +44,15 @@ Alternatively the object can be instantiated without the application in
 which case it can later be registered for an application with the
 :meth:`~flask_oidc.OpenIDConnect.init_app` method.
 
-Note that you should probably provide the library with a place to store the
-credentials it has retrieved for the user. These need to be stored in a place
-where the user themselves or an attacker can not get to them.
-To provide this, give an object that has ``__setitem__`` and ``__getitem__``
-dict APIs implemented as second argument to the :meth:`~flask_oidc.OpenIDConnect.__init__`
-call.
-Without this, the library will only work on a single thread, and only retain
-sessions until the server is restarted.
-
 Using this library is very simple: you can use
 :data:`~flask_oidc.OpenIDConnect.user_loggedin` to determine whether a user is currently
 logged in using OpenID Connect.
 
-If the user is logged in, you an use :meth:`~flask_oidc.OpenIDConnect.user_getfield` and
-:meth:`~flask_oidc.OpenIDConnect.user_getinfo` to get information about the currently
-logged in user.
+If the user is logged in, you an use ``session["oidc_auth_profile"]`` to get
+information about the currently logged in user.
 
-If the user is not logged in, you can send them to any function that is
-decorated with :meth:`~flask_oidc.OpenIDConnect.require_login` to get them automatically
-redirected to login.
+You can decorate any view function with :meth:`~flask_oidc.OpenIDConnect.require_login`
+to redirect anonymous users to the OIDC provider.
 
 
 Example
@@ -71,14 +63,14 @@ A very basic example client::
     @app.route('/')
     def index():
         if oidc.user_loggedin:
-            return 'Welcome %s' % oidc.user_getfield('email')
+            return 'Welcome %s' % session["oidc_auth_profile"].get('email')
         else
             return 'Not logged in'
 
     @app.route('/login')
     @oidc.require_login
     def login():
-        return 'Welcome %s' % oidc.user_getfield('email')
+        return 'Welcome %s' % session["oidc_auth_profile"].get('email')
 
 
 Resource server
@@ -205,13 +197,8 @@ This is a list of all settings supported in the current release.
     'client_secret_basic', or 'bearer'.  Defaults to 'client_secret_post'.
 
 
-API Reference
--------------
+Other docs
+----------
 
 .. toctree::
-   _source/flask_oidc
-
-
-.. _Flask: http://flask.pocoo.org/
-.. _OpenID Connect: https://openid.net/connect/
-.. _oauth2client: https://github.com/google/oauth2client
+   API Reference <_source/flask_oidc>
