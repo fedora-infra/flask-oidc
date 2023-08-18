@@ -213,7 +213,7 @@ def test_init_app():
     app = flask.Flask("dummy")
     with mock.patch.object(OpenIDConnect, "init_app") as init_app:
         OpenIDConnect(app)
-    init_app.assert_called_once_with(app)
+    init_app.assert_called_once_with(app, prefix=None)
 
 
 def test_scopes_as_list(client_secrets_path):

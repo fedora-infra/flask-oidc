@@ -160,13 +160,12 @@ class OpenIDConnect:
                     DeprecationWarning,
                     stacklevel=2,
                 )
-        self._prefix = prefix
         self.accept_token = ResourceProtector()
         self.accept_token.register_token_validator(IntrospectTokenValidator())
         if app is not None:
-            self.init_app(app)
+            self.init_app(app, prefix=prefix)
 
-    def init_app(self, app):
+    def init_app(self, app, prefix=None):
         # Removed features, die if still there
         for param in _CONFIG_REMOVED:
             if param in app.config:
@@ -226,7 +225,7 @@ class OpenIDConnect:
         )
 
         if not app.config["OIDC_RESOURCE_SERVER_ONLY"]:
-            app.register_blueprint(auth_routes, url_prefix=self._prefix)
+            app.register_blueprint(auth_routes, url_prefix=prefix)
             app.route(app.config["OIDC_CALLBACK_ROUTE"])(self._oidc_callback)
         app.before_request(self._before_request)
 
