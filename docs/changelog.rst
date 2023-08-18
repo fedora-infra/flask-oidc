@@ -81,8 +81,8 @@ include for the view to be authorized. It is an Authlib `ResourceProtector`_.
 .. _ResourceProtector: https://docs.authlib.org/en/latest/flask/2/resource-server.html
 
 The Authlib app is available in the ``g._oidc_auth`` variable. This means that
-there cannot be more than one :meth:`~flask_oidc.OpenIDConnect.OpenIDConnect`
-extension on a given Flask application. If you need more, we advise you to use
+there cannot be more than one :meth:`~flask_oidc.OpenIDConnect` extension on a
+given Flask application. If you need more, we advise you to use
 Authlib directly.
 
 
