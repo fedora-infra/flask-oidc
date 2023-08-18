@@ -1,3 +1,4 @@
+==========
 Flask-OIDC
 ==========
 
@@ -10,8 +11,7 @@ on Flask and `Authlib`_. You can install the requirements from PyPI with `pip`.
 .. _Authlib: https://authlib.org/
 
 
-Features
---------
+Features:
 
 - Support for OpenID Connect 1.0
 - Support for OpenID Connect Discovery 1.0
@@ -21,24 +21,23 @@ Features
 - Helper functions to allow resource servers to accept OAuth2 tokens
 
 
+
+How to use
+==========
+
 Installation
 ------------
-
 Install the extension with `pip`::
 
     $ pip install Flask-OIDC
 
-
-
-How to use
-----------
-
+Integration
+-----------
 To integrate Flask-OpenID into your application you need to create an
 instance of the :class:`OpenID` object first::
 
     from flask_oidc import OpenIDConnect
     oidc = OpenIDConnect(app)
-
 
 Alternatively the object can be instantiated without the application in
 which case it can later be registered for an application with the
@@ -57,7 +56,6 @@ to redirect anonymous users to the OIDC provider.
 
 Example
 -------
-
 A very basic example client::
 
     @app.route('/')
@@ -74,9 +72,9 @@ A very basic example client::
 
 
 Resource server
----------------
+===============
 
-Also, if you have implemented an API that can should be able to accept tokens
+Also, if you have implemented an API that should be able to accept tokens
 issued by the OpenID Connect provider, just decorate those API functions with
 :meth:`~flask_oidc.OpenIDConnect.accept_token`::
 
@@ -96,9 +94,14 @@ list of required scopes that the token must provide::
         profile = g._oidc_auth.userinfo(token=token)
         return json.dumps(f'Welcome {profile["fullname"]}')
 
+This decorator is an Authlib `ResourceProtector`_, you'll find more
+documentation on their website.
+
+.. _ResourceProtector: https://docs.authlib.org/en/latest/flask/2/resource-server.html
+
 
 Registration
-------------
+============
 
 To be able to use an OpenID Provider, you will need to register your client
 with them.
@@ -108,8 +111,8 @@ execute::
 
     oidc-register https://myprovider.example.com/ https://myapplication.example.com/authorize
 
-and the full client_secrets.json will be generated for you, and you are ready
-to start.
+The full ``client_secrets.json`` file will be generated for you, and you are
+ready to start.
 
 If it does not, please see the documentation of the Provider you want to use
 for information on how to obtain client secrets.
@@ -138,7 +141,7 @@ the following details:
     <APPLICATION_URL>/authorize
 
 
-You will also need to manually craft your client_secrets.json.
+You will also need to manually craft your ``client_secrets.json``.
 This is just a json document, with everything under a top-level "web" key.
 Underneath that top-level key, you have the following keys:
 
@@ -166,7 +169,7 @@ Underneath that top-level key, you have the following keys:
 
 
 Settings reference
--------------------
+==================
 
 This is a list of all settings supported in the current release.
 
@@ -198,7 +201,7 @@ This is a list of all settings supported in the current release.
 
 
 Other docs
-----------
+==========
 
 .. toctree::
    API Reference <_source/flask_oidc>
