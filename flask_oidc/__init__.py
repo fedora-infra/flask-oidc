@@ -28,25 +28,24 @@ import logging
 import time
 import warnings
 from functools import wraps
-from urllib.parse import quote_plus, urlparse
+from urllib.parse import quote_plus
 
-from authlib.integrations.base_client.errors import OAuthError
 from authlib.integrations.flask_client import OAuth
 from authlib.integrations.flask_oauth2 import ResourceProtector
 from authlib.oauth2.rfc7662 import (
     IntrospectTokenValidator as BaseIntrospectTokenValidator,
 )
 from flask import (
-    Blueprint,
     abort,
     current_app,
-    flash,
     g,
     redirect,
     request,
     session,
     url_for,
 )
+
+from .views import auth_routes, legacy_oidc_callback
 
 __all__ = ["OpenIDConnect"]
 
@@ -67,61 +66,6 @@ _CONFIG_DEPRECATED = (
 )
 
 logger = logging.getLogger(__name__)
-
-auth_routes = Blueprint("oidc_auth", __name__)
-
-
-@auth_routes.route("/login", endpoint="login")
-def login_view():
-    redirect_uri = url_for("oidc_auth.authorize", _external=True)
-    session["next"] = request.args.get("next", request.root_url)
-    return g._oidc_auth.authorize_redirect(redirect_uri)
-
-
-@auth_routes.route("/authorize", endpoint="authorize")
-def authorize_view():
-    try:
-        token = g._oidc_auth.authorize_access_token()
-    except OAuthError as e:
-        logger.exception("Could not get the access token")
-        abort(401, str(e))
-    session["oidc_auth_token"] = token
-    g.oidc_id_token = token
-    if current_app.config["OIDC_USER_INFO_ENABLED"]:
-        profile = g._oidc_auth.userinfo(token=token)
-        session["oidc_auth_profile"] = profile
-    try:
-        return_to = session["next"]
-        del session["next"]
-    except KeyError:
-        return_to = request.root_url
-    return redirect(return_to)
-
-
-@auth_routes.route("/logout", endpoint="logout")
-def logout_view():
-    """
-    Request the browser to please forget the cookie we set, to clear the
-    current session.
-
-    Note that as described in [1], this will not log out in the case of a
-    browser that doesn't clear cookies when requested to, and the user
-    could be automatically logged in when they hit any authenticated
-    endpoint.
-
-    [1]: https://github.com/puiterwijk/flask-oidc/issues/5#issuecomment-86187023
-
-    .. versionadded:: 1.0
-    """
-    session.pop("oidc_auth_token", None)
-    session.pop("oidc_auth_profile", None)
-    reason = request.args.get("reason")
-    if reason == "expired":
-        flash("Your session expired, please reconnect.")
-    else:
-        flash("You were successfully logged out.")
-    return_to = request.args.get("next", request.root_url)
-    return redirect(return_to)
 
 
 class IntrospectTokenValidator(BaseIntrospectTokenValidator):
@@ -227,7 +171,7 @@ class OpenIDConnect:
 
         if not app.config["OIDC_RESOURCE_SERVER_ONLY"]:
             app.register_blueprint(auth_routes, url_prefix=prefix)
-            app.route(app.config["OIDC_CALLBACK_ROUTE"])(self._oidc_callback)
+            app.route(app.config["OIDC_CALLBACK_ROUTE"])(legacy_oidc_callback)
         app.before_request(self._before_request)
 
     def load_secrets(self, app):
@@ -243,21 +187,6 @@ class OpenIDConnect:
         g._oidc_auth = self.oauth.oidc
         if not current_app.config["OIDC_RESOURCE_SERVER_ONLY"]:
             return self.check_token_expiry()
-
-    def _oidc_callback(self):
-        warnings.warn(
-            "The {callback_url} route is deprecated, please use {authorize_url}".format(
-                callback_url=current_app.config["OIDC_CALLBACK_ROUTE"],
-                authorize_url=url_for("oidc_auth.authorize"),
-            ),
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return redirect(
-            "{url}?{qs}".format(
-                url=url_for("oidc_auth.authorize"), qs=urlparse(request.url).query
-            )
-        )
 
     def check_token_expiry(self):
         try:
