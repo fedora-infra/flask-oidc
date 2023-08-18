@@ -208,7 +208,7 @@ def test_custom_callback(client_secrets_path):
         ext.custom_callback(None)
 
 
-def test_need_token(client, mocked_responses):
+def test_accept_token(client, mocked_responses):
     mocked_responses.post(
         "https://test/openidc/TokenInfo",
         json={
@@ -221,7 +221,7 @@ def test_need_token(client, mocked_responses):
     assert resp.get_data(as_text=True) == "OK"
 
 
-def test_need_token_no_token(client, mocked_responses):
+def test_accept_token_no_token(client, mocked_responses):
     resp = client.get("/need-token")
     assert resp.status_code == 401
     assert resp.json == {
@@ -230,7 +230,7 @@ def test_need_token_no_token(client, mocked_responses):
     }
 
 
-def test_need_token_invalid(client, mocked_responses):
+def test_accept_token_invalid(client, mocked_responses):
     mocked_responses.post(
         "https://test/openidc/TokenInfo",
         json={
@@ -249,7 +249,7 @@ def test_need_token_invalid(client, mocked_responses):
     }
 
 
-def test_need_profile(client, mocked_responses):
+def test_accept_token_profile(client, mocked_responses):
     mocked_responses.post(
         "https://test/openidc/TokenInfo",
         json={
@@ -262,7 +262,7 @@ def test_need_profile(client, mocked_responses):
     assert resp.get_data(as_text=True) == "OK"
 
 
-def test_need_absent_scope(client, mocked_responses):
+def test_accept_token_absent_scope(client, mocked_responses):
     mocked_responses.post(
         "https://test/openidc/TokenInfo",
         json={
