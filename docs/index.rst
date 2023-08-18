@@ -202,3 +202,4 @@ Other docs
 
 .. toctree::
    API Reference <_source/flask_oidc>
+   changelog
