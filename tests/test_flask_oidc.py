@@ -187,7 +187,8 @@ def test_user_getinfo_token(test_app, client, mocked_responses):
         ],
     )
     with test_app.test_request_context(path="/somewhere"):
-        resp = test_app.oidc_ext.user_getinfo([], access_token=token)
+        with pytest.warns(DeprecationWarning):
+            resp = test_app.oidc_ext.user_getinfo([], access_token=token)
     assert resp == {"nickname": "dummy"}
 
 

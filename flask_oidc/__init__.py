@@ -291,6 +291,12 @@ class OpenIDConnect:
                 "User info is disabled in configuration (OIDC_USER_INFO_ENABLED)"
             )
         if access_token is not None:
+            warnings.warn(
+                "Calling user_getinfo with a token is deprecated, please use "
+                "g._oidc_auth.userinfo(token=token)",
+                DeprecationWarning,
+                stacklevel=2,
+            )
             return self.oauth.oidc.userinfo(token=access_token)
         warnings.warn(
             "The user_getinfo method is deprecated, please use "
@@ -314,6 +320,12 @@ class OpenIDConnect:
 
         .. versionadded:: 1.0
         """
+        warnings.warn(
+            "The user_getfield method is deprecated, all the user info is in"
+            "session['oidc_auth_profile']",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         return self.user_getinfo([field]).get(field)
 
     def get_access_token(self):
