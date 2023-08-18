@@ -1,7 +1,0 @@
-include README.rst LICENSE.txt
-recursive-include docs *
-recursive-exclude docs *.pyc
-recursive-exclude docs *.pyo
-recursive-include .tox *
-prune docs/_build
-prune docs/_themes/.git

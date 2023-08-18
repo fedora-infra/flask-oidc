@@ -96,7 +96,7 @@ Development
 - The git submodule for documentation themes has been dropped
 - The code is formatted using `Black`_
 - The code is linted using `Ruff`_
-- The package metadata is in ``setup.cfg``
+- The package metadata is managed by `Poetry`_
 - CI is run using Github Actions, Travis config has been dropped
 - Dependencies are updated using `Renovate`_
 
@@ -104,4 +104,5 @@ Development
 .. _Tox: https://tox.readthedocs.io/
 .. _Black: https://black.readthedocs.io/
 .. _Ruff: https://ruff.rs
+.. _Poetry: https://python-poetry.org/
 .. _Renovate: https://docs.renovatebot.com/

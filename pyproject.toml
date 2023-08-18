@@ -1,12 +1,81 @@
-[tool.ruff]
-select = ["E", "F", "W", "I", "B", "UP"]
-line-length = 89
-target-version = "py38"
+[tool.poetry]
+name = "flask-oidc"
+version = "2.0.0"
+description = "OpenID Connect extension for Flask"
+readme = "README.rst"
+authors = [
+    "Erica Ehrhardt",
+    "Patrick Uiterwijk",
+    "Aurélien Bompard <aurelien@bompard.org>",
+]
+homepage = "https://github.com/fedora-infra/flask-oidc"
+repository = "https://github.com/fedora-infra/flask-oidc"
+license = "BSD"
+classifiers = [
+    "Environment :: Web Environment",
+    "Framework :: Flask",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: BSD License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+
+include = [
+    { path = "tox.ini", format = "sdist" },
+    { path = "tests/*", format = "sdist" },
+    { path = "docs/*", format = "sdist" },
+]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+flask = "^2.0.0"
+authlib = "^1.2.0"
+requests = "^2.24.0"
+
+[tool.poetry.group.dev.dependencies]
+black = ">=22.6.0"
+pytest = "^7.1.2"
+pytest-cov = ">=3.0.0"
+ruff = ">=0.0.253"
+sphinx = ">=6.1.3"
+responses = ">=0.23.3"
+sphinxcontrib-httpdomain = "^1.8.1"
+flask-sphinx-themes = "^1.0.2"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+
+[tool.black]
+target-versions = ["py38", "py39", "py310", "py311"]
 
 [tool.ruff.per-file-ignores]
 "tests/*" = ["S101", "S105", "S106"]
 "doc/conf.py" = ["E402", "I001"]
 
-[build-system]
-requires = ["setuptools", "wheel"]
-build-backend = "setuptools.build_meta"
+[tool.coverage.run]
+branch = true
+# source = [
+#     "flask_oidc",
+# ]
+# omit =
+
+[tool.coverage.report]
+precision = 2
+fail_under = 100
+show_missing = true
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+    "\\.\\.\\.",
+    "if __name__ == .__main__.:",
+]

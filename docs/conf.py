@@ -12,17 +12,13 @@
 
 import os
 import sys
-from configparser import ConfigParser
+from importlib import metadata
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 topdir = os.path.abspath("../")
 sys.path.insert(0, topdir)
-
-setupcfg = ConfigParser()
-setupcfg.read(os.path.join(topdir, "setup.cfg"))
-VERSION = setupcfg.get("metadata", "version")
 
 # -- General configuration ------------------------------------------------
 
@@ -62,7 +58,7 @@ author = "Patrick Uiterwijk"
 # built documents.
 #
 # The short X.Y version.
-version = VERSION
+version = metadata.version("flask-oidc")
 # The full version, including alpha/beta/rc tags.
 # release = VERSION
 
