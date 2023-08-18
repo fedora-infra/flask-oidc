@@ -144,6 +144,8 @@ class IntrospectTokenValidator(BaseIntrospectTokenValidator):
 
 
 class OpenIDConnect:
+    accept_token = ResourceProtector()
+
     def __init__(
         self,
         app=None,
@@ -160,7 +162,6 @@ class OpenIDConnect:
                     DeprecationWarning,
                     stacklevel=2,
                 )
-        self.accept_token = ResourceProtector()
         self.accept_token.register_token_validator(IntrospectTokenValidator())
         if app is not None:
             self.init_app(app, prefix=prefix)
