@@ -229,7 +229,6 @@ class OpenIDConnect:
             app.register_blueprint(auth_routes, url_prefix=self._prefix)
             app.route(app.config["OIDC_CALLBACK_ROUTE"])(self._oidc_callback)
         app.before_request(self._before_request)
-        app.after_request(self._after_request)
 
     def load_secrets(self, app):
         # Load client_secrets.json to pre-initialize some configuration
@@ -244,9 +243,6 @@ class OpenIDConnect:
         g._oidc_auth = self.oauth.oidc
         if not current_app.config["OIDC_RESOURCE_SERVER_ONLY"]:
             return self.check_token_expiry()
-
-    def _after_request(self, response):
-        return response
 
     def _oidc_callback(self):
         warnings.warn(
