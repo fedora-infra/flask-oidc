@@ -2,6 +2,15 @@
 Changelog
 =========
 
+UNRELEASED
+==========
+
+Fixed
+-----
+
+- Don't crash if the ``client_secrets`` don't contain a ``userinfo_uri`` key.
+
+
 2.0.0 (2023-08-21)
 ==================
 

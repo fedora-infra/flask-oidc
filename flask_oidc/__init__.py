@@ -133,7 +133,17 @@ class OpenIDConnect:
         app.config.setdefault(
             "OIDC_CLIENT_SECRET", self.client_secrets["client_secret"]
         )
-        app.config.setdefault("OIDC_USERINFO_URL", self.client_secrets["userinfo_uri"])
+        try:
+            app.config.setdefault(
+                "OIDC_USERINFO_URL", self.client_secrets["userinfo_uri"]
+            )
+        except KeyError:
+            if app.config.get("OIDC_USER_INFO_ENABLED", False):
+                logger.warning(
+                    'No "userinfo_uri" entry was found in the client_secrets, '
+                    "retrieving user information is disabled."
+                )
+            app.config["OIDC_USER_INFO_ENABLED"] = False
         app.config.setdefault("OIDC_USER_INFO_ENABLED", True)
         app.config.setdefault("OIDC_INTROSPECTION_AUTH_METHOD", "client_secret_post")
         app.config.setdefault("OIDC_CLOCK_SKEW", 60)
