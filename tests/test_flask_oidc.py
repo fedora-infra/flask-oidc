@@ -308,27 +308,3 @@ def test_resource_server_only(client_secrets_path):
             resp = client.get(url)
             assert resp.status_code == 404
         check_token_expiry.assert_not_called()
-
-
-def test_no_userinfo_url(client_secrets, caplog):
-    app = flask.Flask("dummy")
-    client_secrets = client_secrets.copy()
-    del client_secrets["userinfo_uri"]
-    app.config["OIDC_CLIENT_SECRETS"] = {"web": client_secrets}
-    OpenIDConnect(app)
-    assert app.config["OIDC_USER_INFO_ENABLED"] is False
-    assert len(caplog.messages) == 0
-
-
-def test_no_userinfo_url_when_enabled(client_secrets, caplog):
-    app = flask.Flask("dummy")
-    client_secrets = client_secrets.copy()
-    del client_secrets["userinfo_uri"]
-    app.config["OIDC_USER_INFO_ENABLED"] = True
-    app.config["OIDC_CLIENT_SECRETS"] = {"web": client_secrets}
-    OpenIDConnect(app)
-    assert app.config["OIDC_USER_INFO_ENABLED"] is False
-    assert caplog.messages == [
-        'No "userinfo_uri" entry was found in the client_secrets, retrieving user '
-        "information is disabled."
-    ]

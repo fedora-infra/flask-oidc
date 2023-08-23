@@ -2,6 +2,16 @@
 Changelog
 =========
 
+UNRELEASED
+==========
+
+Deprecated
+----------
+
+- Configuration option ``OIDC_USERINFO_URL`` (and the ``userinfo_uri`` key in
+  ``client_secrets``) (:issue:`15`).
+
+
 2.0.1 (2023-08-22)
 ==================
 
