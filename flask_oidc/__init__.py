@@ -193,6 +193,8 @@ class OpenIDConnect:
             token = session.get("oidc_auth_token")
             if not token:
                 return
+            if request.path == url_for("oidc_auth.logout"):
+                return  # Avoid redirect loop
             clock_skew = current_app.config["OIDC_CLOCK_SKEW"]
             if token["expires_at"] - clock_skew < int(time.time()):
                 return redirect("{}?reason=expired".format(url_for("oidc_auth.logout")))

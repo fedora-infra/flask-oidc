@@ -5,6 +5,12 @@ Changelog
 UNRELEASED
 ==========
 
+Fixed
+-----
+
+- Avoid a redirect loop on logout when the token is expired (:issue:`17`).
+
+
 Deprecated
 ----------
 

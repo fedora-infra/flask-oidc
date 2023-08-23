@@ -1,3 +1,5 @@
+import time
+
 import flask
 import pytest
 
@@ -46,10 +48,14 @@ def test_logout(client, dummy_token):
 
 
 def test_logout_expired(client, dummy_token):
+    dummy_token["expires_at"] = int(time.time())
     with client.session_transaction() as session:
         session["oidc_auth_token"] = dummy_token
         session["oidc_auth_profile"] = {"nickname": "dummy"}
-    client.get("/logout?reason=expired")
+    response = client.get("/logout?reason=expired")
+    assert response.status_code == 302
+    # This should not redirect forever to the logout page
+    assert response.location == "http://localhost/"
     flashes = flask.get_flashed_messages()
     assert len(flashes) == 1
     assert flashes[0] == "Your session expired, please reconnect."
