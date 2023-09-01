@@ -7,7 +7,8 @@ import flask
 import pytest
 import responses
 from authlib.common.urls import url_decode
-from packaging.version import Version, parse as parse_version
+from packaging.version import Version
+from packaging.version import parse as parse_version
 from werkzeug.exceptions import Unauthorized
 
 from flask_oidc import OpenIDConnect
@@ -81,15 +82,57 @@ def test_ext_logout(test_app, client, dummy_token):
     assert resp.location == expected
 
 
-def test_expired_token(client, dummy_token):
+def test_expired_token(client, dummy_token, mocked_responses):
+    new_token = dummy_token.copy()
+    new_token["access_token"] = "this-is-new"
+    refresh_call = mocked_responses.post("https://test/openidc/Token", json=new_token)
+
     dummy_token["expires_at"] = int(time.time())
     with client.session_transaction() as session:
         session["oidc_auth_token"] = dummy_token
         session["oidc_auth_profile"] = {"nickname": "dummy"}
+
     resp = client.get("/")
+
+    # Make sure we called the token url properly
+    assert refresh_call.call_count == 1
+    call = mocked_responses.calls[1].request
+    body = parse_qs(call.body)
+    assert body == {
+        "grant_type": ["refresh_token"],
+        "refresh_token": ["dummy_refresh_token"],
+        "scope": ["openid profile email"],
+        "client_id": ["MyClient"],
+        "client_secret": ["MySecret"],
+    }
+    # Check that we have the new token in the session
+    assert "oidc_auth_token" in flask.session
+    assert flask.session["oidc_auth_token"]["access_token"] == "this-is-new"
+    # Make sure we went through with the page request
+    assert resp.status_code == 200
+
+
+def test_expired_token_cant_renew(client, dummy_token, mocked_responses):
+    new_token = dummy_token.copy()
+    new_token["access_token"] = "this-is-new"
+    refresh_call = mocked_responses.post(
+        "https://test/openidc/Token", json={"error": "dummy"}, status=401
+    )
+
+    dummy_token["expires_at"] = int(time.time())
+    with client.session_transaction() as session:
+        session["oidc_auth_token"] = dummy_token
+        session["oidc_auth_profile"] = {"nickname": "dummy"}
+
+    resp = client.get("/")
+
+    assert refresh_call.call_count == 1
     assert resp.status_code == 302
     assert resp.location == "/logout?reason=expired"
     resp = client.get(resp.location)
+    assert resp.status_code == 302
+    assert resp.location == "http://localhost/"
+    assert "oidc_auth_token" not in flask.session
 
 
 def test_bad_token(client):
@@ -98,9 +141,7 @@ def test_bad_token(client):
         session["oidc_auth_profile"] = {"nickname": "dummy"}
     resp = client.get("/")
     assert resp.status_code == 500
-    assert "oidc_auth_token" not in flask.session
-    assert "oidc_auth_profile" not in flask.session
-    assert "TypeError: string indices must be integers" in resp.get_data(as_text=True)
+    assert "Internal Server Error" in resp.get_data(as_text=True)
 
 
 def test_user_getinfo(test_app, client, dummy_token):

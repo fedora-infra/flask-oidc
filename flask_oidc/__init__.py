@@ -25,25 +25,18 @@
 
 import json
 import logging
-import time
 import warnings
 from functools import wraps
 from urllib.parse import quote_plus
 
+from authlib.common.errors import AuthlibBaseError
 from authlib.integrations.flask_client import OAuth
 from authlib.integrations.flask_oauth2 import ResourceProtector
+from authlib.oauth2.rfc6749 import OAuth2Token
 from authlib.oauth2.rfc7662 import (
     IntrospectTokenValidator as BaseIntrospectTokenValidator,
 )
-from flask import (
-    abort,
-    current_app,
-    g,
-    redirect,
-    request,
-    session,
-    url_for,
-)
+from flask import abort, current_app, g, redirect, request, session, url_for
 
 from .views import auth_routes, legacy_oidc_callback
 
@@ -167,6 +160,7 @@ class OpenIDConnect:
                     "OIDC_INTROSPECTION_AUTH_METHOD"
                 ],
             },
+            update_token=self._update_token,
         )
 
         if not app.config["OIDC_RESOURCE_SERVER_ONLY"]:
@@ -195,14 +189,23 @@ class OpenIDConnect:
                 return
             if request.path == url_for("oidc_auth.logout"):
                 return  # Avoid redirect loop
-            clock_skew = current_app.config["OIDC_CLOCK_SKEW"]
-            if token["expires_at"] - clock_skew < int(time.time()):
+            token = OAuth2Token.from_dict(token)
+            try:
+                self.ensure_active_token(token)
+            except AuthlibBaseError as e:
+                logger.info(f"Could not refresh token {token!r}: {e}")
                 return redirect("{}?reason=expired".format(url_for("oidc_auth.logout")))
         except Exception as e:
-            session.pop("oidc_auth_token", None)
-            session.pop("oidc_auth_profile", None)
             logger.exception("Could not check token expiration")
             abort(500, f"{e.__class__.__name__}: {e}")
+
+    def ensure_active_token(self, token: OAuth2Token):
+        metadata = self.oauth.oidc.load_server_metadata()
+        with self.oauth.oidc._get_oauth_client(**metadata) as session:
+            return session.ensure_active_token(token)
+
+    def _update_token(name, token, refresh_token=None, access_token=None):
+        session["oidc_auth_token"] = g.oidc_id_token = token
 
     @property
     def user_loggedin(self):

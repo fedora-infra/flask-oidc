@@ -2,6 +2,15 @@
 Changelog
 =========
 
+UNRELEASED
+==========
+
+Added
+-----
+
+- Auto-renew tokens when they have expired (if possible) (:issue:`19`)
+
+
 2.0.2 (2023-08-23)
 ==================
 
