@@ -16,6 +16,15 @@ Fixed
 - Use the ``OIDC_CALLBACK_ROUTE`` with the ID provider when it is defined,
   instead of the default (:issue:`21`)
 
+Changed
+-------
+
+- The ``redirect_uri`` that is generated and sent to the ID provider is always
+  HTTPS, as `the OIDC spec`_ mandates.
+
+.. _the OIDC spec: https://openid.net/specs/openid-connect-core-1_0.html#AuthRequest
+
+
 
 2.0.2 (2023-08-23)
 ==================

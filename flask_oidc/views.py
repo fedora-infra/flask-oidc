@@ -52,7 +52,7 @@ def login_view():
             f"https://{request.host}{current_app.config['OIDC_CALLBACK_ROUTE']}"
         )
     else:
-        redirect_uri = url_for("oidc_auth.authorize", _external=True)
+        redirect_uri = url_for("oidc_auth.authorize", _external=True, _scheme="https")
     session["next"] = request.args.get("next", request.root_url)
     return g._oidc_auth.authorize_redirect(redirect_uri)
 

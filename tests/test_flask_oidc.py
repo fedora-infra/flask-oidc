@@ -57,7 +57,7 @@ def test_signin(test_app, client, mocked_responses, dummy_token):
     token_query = parse_qs(mocked_responses.calls[1][0].body)
     assert token_query == {
         "grant_type": ["authorization_code"],
-        "redirect_uri": ["http://localhost/authorize"],
+        "redirect_uri": ["https://localhost/authorize"],
         "code": ["mock_auth_code"],
         "client_id": ["MyClient"],
         "client_secret": ["MySecret"],
