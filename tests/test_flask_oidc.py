@@ -13,6 +13,8 @@ from werkzeug.exceptions import Unauthorized
 
 from flask_oidc import OpenIDConnect
 
+from .app import oidc as oidc_ext
+
 
 def callback_url_for(response):
     """
@@ -203,21 +205,15 @@ def test_init_app():
     init_app.assert_called_once_with(app, prefix=None)
 
 
-def test_scopes_as_list(client_secrets_path):
-    app = flask.Flask("dummy")
-    app.config["OIDC_CLIENT_SECRETS"] = client_secrets_path
-    app.config["OIDC_SCOPES"] = ["openid", "profile", "email"]
+def test_scopes_as_list(make_test_app):
     with pytest.warns():
-        OpenIDConnect(app)
+        app = make_test_app({"OIDC_SCOPES": ["openid", "profile", "email"]})
     assert app.config["OIDC_SCOPES"] == "openid profile email"
 
 
-def test_bad_scopes(client_secrets_path):
-    app = flask.Flask("dummy")
-    app.config["OIDC_CLIENT_SECRETS"] = client_secrets_path
-    app.config["OIDC_SCOPES"] = "profile email"
+def test_bad_scopes(make_test_app):
     with pytest.raises(ValueError):
-        OpenIDConnect(app)
+        make_test_app({"OIDC_SCOPES": "profile email"})
 
 
 def test_inline_client_secrets(client_secrets):
@@ -235,23 +231,16 @@ def test_deprecated_class_params(client_secrets_path):
             OpenIDConnect(app, **{param_name: "dummy"})
 
 
-def test_obsolete_config_params(client_secrets_path):
-    app = flask.Flask("dummy")
-    app.config["OIDC_CLIENT_SECRETS"] = client_secrets_path
-    with mock.patch.dict(app.config, {"OIDC_GOOGLE_APPS_DOMAIN": "example.com"}):
-        with pytest.raises(ValueError):
-            OpenIDConnect(app)
-    with mock.patch.dict(app.config, {"OIDC_ID_TOKEN_COOKIE_PATH": "/path"}):
-        with pytest.warns(DeprecationWarning):
-            OpenIDConnect(app)
-
-
-def test_custom_callback(client_secrets_path):
-    app = flask.Flask("dummy")
-    app.config["OIDC_CLIENT_SECRETS"] = client_secrets_path
-    ext = OpenIDConnect(app)
+def test_obsolete_config_params(make_test_app):
     with pytest.raises(ValueError):
-        ext.custom_callback(None)
+        make_test_app({"OIDC_GOOGLE_APPS_DOMAIN": "example.com"})
+    with pytest.warns(DeprecationWarning):
+        make_test_app({"OIDC_ID_TOKEN_COOKIE_PATH": "/path"})
+
+
+def test_custom_callback(test_app):
+    with pytest.raises(ValueError):
+        oidc_ext.custom_callback(None)
 
 
 def test_accept_token(client, mocked_responses):
@@ -338,13 +327,10 @@ def test_introspection_unsupported(client, mocked_responses, oidc_server_metadat
         client.get("/need-token", headers={"Authorization": "Bearer dummy-token"})
 
 
-def test_resource_server_only(client_secrets_path):
-    app = flask.Flask("dummy")
-    app.config["OIDC_CLIENT_SECRETS"] = client_secrets_path
-    app.config["OIDC_RESOURCE_SERVER_ONLY"] = True
+def test_resource_server_only(make_test_app):
+    app = make_test_app({"OIDC_RESOURCE_SERVER_ONLY": True})
     client = app.test_client()
-    ext = OpenIDConnect(app)
-    with mock.patch.object(ext, "check_token_expiry") as check_token_expiry:
+    with mock.patch.object(oidc_ext, "check_token_expiry") as check_token_expiry:
         for url in ("/oidc_callback", "/login", "/logout", "/authorize"):
             resp = client.get(url)
             assert resp.status_code == 404
