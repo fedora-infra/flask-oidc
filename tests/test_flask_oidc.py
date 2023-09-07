@@ -103,7 +103,7 @@ def test_expired_token(client, dummy_token, mocked_responses):
     assert body == {
         "grant_type": ["refresh_token"],
         "refresh_token": ["dummy_refresh_token"],
-        "scope": ["openid profile email"],
+        "scope": ["openid email"],
         "client_id": ["MyClient"],
         "client_secret": ["MySecret"],
     }

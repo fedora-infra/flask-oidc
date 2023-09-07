@@ -133,7 +133,7 @@ class OpenIDConnect:
         app.config.setdefault("OIDC_RESOURCE_SERVER_ONLY", False)
         app.config.setdefault("OIDC_CALLBACK_ROUTE", None)
 
-        app.config.setdefault("OIDC_SCOPES", "openid profile email")
+        app.config.setdefault("OIDC_SCOPES", "openid email")
         if "openid" not in app.config["OIDC_SCOPES"]:
             raise ValueError('The value "openid" must be in the OIDC_SCOPES')
         if isinstance(app.config["OIDC_SCOPES"], (list, tuple)):

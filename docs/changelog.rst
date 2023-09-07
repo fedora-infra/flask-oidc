@@ -21,6 +21,8 @@ Changed
 
 - The ``redirect_uri`` that is generated and sent to the ID provider is always
   HTTPS, as `the OIDC spec`_ mandates.
+- Don't request the ``profile`` scope by default, as version 1.x used to do
+  (:issue:`21`).
 
 .. _the OIDC spec: https://openid.net/specs/openid-connect-core-1_0.html#AuthRequest
 
