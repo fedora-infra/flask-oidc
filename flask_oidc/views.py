@@ -47,7 +47,12 @@ auth_routes = Blueprint("oidc_auth", __name__)
 
 @auth_routes.route("/login", endpoint="login")
 def login_view():
-    redirect_uri = url_for("oidc_auth.authorize", _external=True)
+    if current_app.config["OIDC_CALLBACK_ROUTE"]:
+        redirect_uri = (
+            f"https://{request.host}{current_app.config['OIDC_CALLBACK_ROUTE']}"
+        )
+    else:
+        redirect_uri = url_for("oidc_auth.authorize", _external=True)
     session["next"] = request.args.get("next", request.root_url)
     return g._oidc_auth.authorize_redirect(redirect_uri)
 

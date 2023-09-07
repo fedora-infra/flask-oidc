@@ -10,6 +10,12 @@ Added
 
 - Auto-renew tokens when they have expired (if possible) (:issue:`19`)
 
+Fixed
+-----
+
+- Use the ``OIDC_CALLBACK_ROUTE`` with the ID provider when it is defined,
+  instead of the default (:issue:`21`)
+
 
 2.0.2 (2023-08-23)
 ==================

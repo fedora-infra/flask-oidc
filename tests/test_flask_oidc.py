@@ -349,3 +349,16 @@ def test_resource_server_only(client_secrets_path):
             resp = client.get(url)
             assert resp.status_code == 404
         check_token_expiry.assert_not_called()
+
+
+def test_oidc_callback_route(make_test_app):
+    with pytest.warns():
+        app = make_test_app({"OIDC_CALLBACK_ROUTE": "/dummy_cb"})
+    client = app.test_client()
+    resp = client.get("/login")
+    assert resp.status_code == 302
+    assert "redirect_uri=https%3A%2F%2Flocalhost%2Fdummy_cb" in resp.location
+    with pytest.warns():
+        resp = client.get("/dummy_cb?dummy_arg=dummy_value")
+    assert resp.status_code == 302
+    assert resp.location == "/authorize?dummy_arg=dummy_value"

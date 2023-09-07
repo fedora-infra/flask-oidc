@@ -131,7 +131,7 @@ class OpenIDConnect:
         app.config.setdefault("OIDC_INTROSPECTION_AUTH_METHOD", "client_secret_post")
         app.config.setdefault("OIDC_CLOCK_SKEW", 60)
         app.config.setdefault("OIDC_RESOURCE_SERVER_ONLY", False)
-        app.config.setdefault("OIDC_CALLBACK_ROUTE", "/oidc_callback")
+        app.config.setdefault("OIDC_CALLBACK_ROUTE", None)
 
         app.config.setdefault("OIDC_SCOPES", "openid profile email")
         if "openid" not in app.config["OIDC_SCOPES"]:
@@ -165,7 +165,10 @@ class OpenIDConnect:
 
         if not app.config["OIDC_RESOURCE_SERVER_ONLY"]:
             app.register_blueprint(auth_routes, url_prefix=prefix)
-            app.route(app.config["OIDC_CALLBACK_ROUTE"])(legacy_oidc_callback)
+            app.route("/oidc_callback")(legacy_oidc_callback)
+            if app.config["OIDC_CALLBACK_ROUTE"]:
+                app.route(app.config["OIDC_CALLBACK_ROUTE"])(legacy_oidc_callback)
+
         app.before_request(self._before_request)
 
     def load_secrets(self, app):

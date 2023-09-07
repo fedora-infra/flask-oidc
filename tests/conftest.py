@@ -53,24 +53,34 @@ def oidc_server_metadata(client_secrets):
 
 
 @pytest.fixture
-def test_app(
+def make_test_app(
     oidc_server_metadata, client_secrets_path, client_secrets, mocked_responses
 ):
-    """A Flask app object set up for testing."""
-    test_app = app.create_app(
-        {
+    """Make a Flask app object set up for testing."""
+
+    def _make_test_app(config=None, oidc_overrides=None):
+        _config = {
             "SECRET_KEY": "SEEEKRIT",
             "TESTING": True,
             "OIDC_CLIENT_SECRETS": client_secrets_path,
-        },
-        {},
-    )
+        }
+        _config.update(config or {})
 
-    base_url = client_secrets["issuer"].rstrip("/")
-    mocked_responses.get(
-        f"{base_url}/.well-known/openid-configuration", json=oidc_server_metadata
-    )
-    yield test_app
+        test_app = app.create_app(_config, oidc_overrides or {})
+
+        base_url = client_secrets["issuer"].rstrip("/")
+        mocked_responses.get(
+            f"{base_url}/.well-known/openid-configuration", json=oidc_server_metadata
+        )
+        return test_app
+
+    return _make_test_app
+
+
+@pytest.fixture
+def test_app(make_test_app):
+    """A Flask app object set up for testing."""
+    return make_test_app()
 
 
 @pytest.fixture
