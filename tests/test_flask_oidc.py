@@ -57,7 +57,7 @@ def test_signin(test_app, client, mocked_responses, dummy_token):
     token_query = parse_qs(mocked_responses.calls[1][0].body)
     assert token_query == {
         "grant_type": ["authorization_code"],
-        "redirect_uri": ["https://localhost/authorize"],
+        "redirect_uri": ["http://localhost/authorize"],
         "code": ["mock_auth_code"],
         "client_id": ["MyClient"],
         "client_secret": ["MySecret"],
@@ -348,3 +348,17 @@ def test_oidc_callback_route(make_test_app):
         resp = client.get("/dummy_cb?dummy_arg=dummy_value")
     assert resp.status_code == 302
     assert resp.location == "/authorize?dummy_arg=dummy_value"
+
+
+def test_oidc_overwrite_redirect_uri_deprecated(make_test_app):
+    with pytest.warns():
+        app = make_test_app({"OVERWRITE_REDIRECT_URI": "http://localhost/dummy_cb"})
+    assert app.config.get("OIDC_OVERWRITE_REDIRECT_URI", "http://localhost/dummy_cb")
+
+
+def test_oidc_overwrite_redirect_uri(make_test_app):
+    app = make_test_app({"OIDC_OVERWRITE_REDIRECT_URI": "http://localhost/dummy_cb"})
+    client = app.test_client()
+    resp = client.get("/login")
+    assert resp.status_code == 302
+    assert "redirect_uri=http%3A%2F%2Flocalhost%2Fdummy_cb" in resp.location

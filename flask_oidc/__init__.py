@@ -54,7 +54,6 @@ _CONFIG_DEPRECATED = (
     "OIDC_ID_TOKEN_COOKIE_TTL",
     "OIDC_COOKIE_SECURE",
     "OIDC_OPENID_REALM",
-    "OVERWRITE_REDIRECT_URI",
     "OIDC_CALLBACK_ROUTE",
     "OIDC_USERINFO_URL",
 )
@@ -132,6 +131,18 @@ class OpenIDConnect:
         app.config.setdefault("OIDC_CLOCK_SKEW", 60)
         app.config.setdefault("OIDC_RESOURCE_SERVER_ONLY", False)
         app.config.setdefault("OIDC_CALLBACK_ROUTE", None)
+
+        if "OVERWRITE_REDIRECT_URI" in app.config:
+            warnings.warn(
+                "The 'OVERWRITE_REDIRECT_URI' configuration value has been replaced by "
+                "'OIDC_OVERWRITE_REDIRECT_URI', please update your configuration.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            app.config.setdefault(
+                "OIDC_OVERWRITE_REDIRECT_URI", app.config["OVERWRITE_REDIRECT_URI"]
+            )
+        app.config.setdefault("OIDC_OVERWRITE_REDIRECT_URI", None)
 
         app.config.setdefault("OIDC_SCOPES", "openid email")
         if "openid" not in app.config["OIDC_SCOPES"]:
