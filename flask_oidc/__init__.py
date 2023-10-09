@@ -30,6 +30,7 @@ from functools import wraps
 from urllib.parse import quote_plus
 
 from authlib.common.errors import AuthlibBaseError
+from authlib.integrations.base_client import InvalidTokenError
 from authlib.integrations.flask_client import OAuth
 from authlib.integrations.flask_oauth2 import ResourceProtector
 from authlib.oauth2.rfc6749 import OAuth2Token
@@ -216,7 +217,12 @@ class OpenIDConnect:
     def ensure_active_token(self, token: OAuth2Token):
         metadata = self.oauth.oidc.load_server_metadata()
         with self.oauth.oidc._get_oauth_client(**metadata) as session:
-            return session.ensure_active_token(token)
+            result = session.ensure_active_token(token)
+            if result is None:
+                # See the ensure_active_token method in
+                # authlib.integrations.requests_client.oauth2_session:OAuth2Auth
+                raise InvalidTokenError()
+            return result
 
     def _update_token(name, token, refresh_token=None, access_token=None):
         session["oidc_auth_token"] = g.oidc_id_token = token

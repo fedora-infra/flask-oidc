@@ -26,6 +26,12 @@ def callback_url_for(response):
     return f"{query['redirect_uri'][0]}?state={query['state'][0]}&code=mock_auth_code"
 
 
+def _set_token(client, token):
+    with client.session_transaction() as session:
+        session["oidc_auth_token"] = token
+        session["oidc_auth_profile"] = {"nickname": "dummy"}
+
+
 def test_signin(test_app, client, mocked_responses, dummy_token):
     """Happy path authentication test."""
     mocked_responses.post("https://test/openidc/Token", json=dummy_token)
@@ -90,9 +96,7 @@ def test_expired_token(client, dummy_token, mocked_responses):
     refresh_call = mocked_responses.post("https://test/openidc/Token", json=new_token)
 
     dummy_token["expires_at"] = int(time.time())
-    with client.session_transaction() as session:
-        session["oidc_auth_token"] = dummy_token
-        session["oidc_auth_profile"] = {"nickname": "dummy"}
+    _set_token(client, dummy_token)
 
     resp = client.get("/")
 
@@ -115,16 +119,12 @@ def test_expired_token(client, dummy_token, mocked_responses):
 
 
 def test_expired_token_cant_renew(client, dummy_token, mocked_responses):
-    new_token = dummy_token.copy()
-    new_token["access_token"] = "this-is-new"
     refresh_call = mocked_responses.post(
         "https://test/openidc/Token", json={"error": "dummy"}, status=401
     )
 
     dummy_token["expires_at"] = int(time.time())
-    with client.session_transaction() as session:
-        session["oidc_auth_token"] = dummy_token
-        session["oidc_auth_profile"] = {"nickname": "dummy"}
+    _set_token(client, dummy_token)
 
     resp = client.get("/")
 
@@ -137,10 +137,23 @@ def test_expired_token_cant_renew(client, dummy_token, mocked_responses):
     assert "oidc_auth_token" not in flask.session
 
 
+def test_expired_token_no_refresh_token(client, dummy_token):
+    del dummy_token["refresh_token"]
+    dummy_token["expires_at"] = int(time.time())
+    _set_token(client, dummy_token)
+
+    resp = client.get("/")
+
+    assert resp.status_code == 302
+    assert resp.location == "/logout?reason=expired"
+    resp = client.get(resp.location)
+    assert resp.status_code == 302
+    assert resp.location == "http://localhost/"
+    assert "oidc_auth_token" not in flask.session
+
+
 def test_bad_token(client):
-    with client.session_transaction() as session:
-        session["oidc_auth_token"] = "bad_token"
-        session["oidc_auth_profile"] = {"nickname": "dummy"}
+    _set_token(client, "bad_token")
     resp = client.get("/")
     assert resp.status_code == 500
     assert "Internal Server Error" in resp.get_data(as_text=True)

@@ -12,6 +12,8 @@ UNRELEASED
   forced to HTTPS, because the `the OIDC spec`_ is actually only a strong
   recommendation (:issue:`35`). You can use ``OVERWRITE_REDIRECT_URI`` if you want
   to force it to HTTPS (or any other URL).
+- Handle token expiration when there is no ``refresh_token`` or no token URL
+  (:issue:`39`)
 
 
 2.0.3 (2023-09-08)
