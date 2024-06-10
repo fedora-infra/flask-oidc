@@ -20,6 +20,7 @@ from werkzeug.exceptions import Unauthorized
 from flask_oidc import OpenIDConnect
 
 from .app import oidc as oidc_ext
+from .utils import set_token
 
 
 def callback_url_for(response):
@@ -30,12 +31,6 @@ def callback_url_for(response):
     location = urlparse(response.location)
     query = parse_qs(location.query)
     return f"{query['redirect_uri'][0]}?state={query['state'][0]}&code=mock_auth_code"
-
-
-def _set_token(client, token):
-    with client.session_transaction() as session:
-        session["oidc_auth_token"] = token
-        session["oidc_auth_profile"] = {"nickname": "dummy"}
 
 
 def test_signin(test_app, client, mocked_responses, dummy_token):
@@ -105,7 +100,7 @@ def test_logout_redirect_loop(make_test_app, dummy_token, mocked_responses):
             "https://test/openidc/Token", json={"error": "dummy"}, status=401
         )
         dummy_token["expires_at"] = int(time.time())
-        _set_token(client, dummy_token)
+        set_token(client, dummy_token)
 
         resp = client.get("/logout?reason=expired")
         assert resp.location == "http://localhost/subpath/"
@@ -118,7 +113,7 @@ def test_expired_token(client, dummy_token, mocked_responses):
     refresh_call = mocked_responses.post("https://test/openidc/Token", json=new_token)
 
     dummy_token["expires_at"] = int(time.time())
-    _set_token(client, dummy_token)
+    set_token(client, dummy_token)
 
     resp = client.get("/")
 
@@ -146,7 +141,7 @@ def test_expired_token_cant_renew(client, dummy_token, mocked_responses):
     )
 
     dummy_token["expires_at"] = int(time.time())
-    _set_token(client, dummy_token)
+    set_token(client, dummy_token)
 
     resp = client.get("/")
 
@@ -162,7 +157,7 @@ def test_expired_token_cant_renew(client, dummy_token, mocked_responses):
 def test_expired_token_no_refresh_token(client, dummy_token):
     del dummy_token["refresh_token"]
     dummy_token["expires_at"] = int(time.time())
-    _set_token(client, dummy_token)
+    set_token(client, dummy_token)
 
     resp = client.get("/")
 
@@ -175,7 +170,7 @@ def test_expired_token_no_refresh_token(client, dummy_token):
 
 
 def test_bad_token(client):
-    _set_token(client, "bad_token")
+    set_token(client, "bad_token")
     resp = client.get("/")
     assert resp.status_code == 500
     assert "Internal Server Error" in resp.get_data(as_text=True)

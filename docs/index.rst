@@ -33,8 +33,8 @@ Install the extension with `pip`::
 
 Integration
 -----------
-To integrate Flask-OpenID into your application you need to create an
-instance of the :class:`OpenID` object first::
+To integrate Flask-OIDC into your application you need to create an
+instance of the :class:`OpenIDConnect` object first::
 
     from flask_oidc import OpenIDConnect
     oidc = OpenIDConnect(app)
@@ -47,8 +47,14 @@ Using this library is very simple: you can use
 :data:`~flask_oidc.OpenIDConnect.user_loggedin` to determine whether a user is currently
 logged in using OpenID Connect.
 
-If the user is logged in, you an use ``session["oidc_auth_profile"]`` to get
+If the user is logged in, you can use ``session["oidc_auth_profile"]`` to get
 information about the currently logged in user.
+
+A :class:`~flask_oidc.model.User` object is also provided on ``g.oidc_user``, see its API
+documentation to discover which convenient properties are available.
+You can set the ``OIDC_USER_CLASS`` configuration variable to the python path of a class if
+you want to user your own class. It needs to accept the extension instance as only
+constructor argument.
 
 You can decorate any view function with :meth:`~flask_oidc.OpenIDConnect.require_login`
 to redirect anonymous users to the OIDC provider.
@@ -69,6 +75,14 @@ A very basic example client::
     @oidc.require_login
     def login():
         return 'Welcome %s' % session["oidc_auth_profile"].get('email')
+
+    @app.route('/alt')
+    def alternative():
+        # This uses the user instance at g.oidc_user instead
+        if g.oidc_user.logged_in:
+            return 'Welcome %s' % g.oidc_user.profile.get('email')
+        else
+            return 'Not logged in'
 
 
 Resource server
@@ -206,6 +220,10 @@ This is a list of all settings supported in the current release.
     String that sets the authentication method used when communicating with
     the token_introspection_uri.  Valid values are 'client_secret_post',
     'client_secret_basic', or 'bearer'.  Defaults to 'client_secret_post'.
+
+  OIDC_USER_CLASS
+    The python path to a custom :class:`~flask_oidc.model.User` model.
+    It needs to accept the extension instance as only constructor argument.
 
 
 Other docs

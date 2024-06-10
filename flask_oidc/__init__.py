@@ -19,6 +19,7 @@ from authlib.oauth2.rfc7662 import (
     IntrospectTokenValidator as BaseIntrospectTokenValidator,
 )
 from flask import abort, current_app, g, redirect, request, session, url_for
+from werkzeug.utils import import_string
 
 from .views import auth_routes, legacy_oidc_callback
 
@@ -162,6 +163,14 @@ class OpenIDConnect:
             if app.config["OIDC_CALLBACK_ROUTE"]:
                 app.route(app.config["OIDC_CALLBACK_ROUTE"])(legacy_oidc_callback)
 
+        # User model
+        app.config.setdefault("OIDC_USER_CLASS", "flask_oidc.model.User")
+        if app.config["OIDC_USER_CLASS"]:
+            app.extensions["_oidc_user_class"] = import_string(
+                app.config["OIDC_USER_CLASS"]
+            )
+
+        # Flask hooks
         app.before_request(self._before_request)
 
     def load_secrets(self, app):
@@ -175,6 +184,8 @@ class OpenIDConnect:
 
     def _before_request(self):
         g._oidc_auth = self.oauth.oidc
+        if current_app.extensions.get("_oidc_user_class"):
+            g.oidc_user = current_app.extensions["_oidc_user_class"](self)
         if not current_app.config["OIDC_RESOURCE_SERVER_ONLY"]:
             return self.check_token_expiry()
 
