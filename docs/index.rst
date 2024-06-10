@@ -226,6 +226,13 @@ This is a list of all settings supported in the current release.
     It needs to accept the extension instance as only constructor argument.
 
 
+Signals
+=======
+
+Some signals are available to hook into the login and logout process, see the
+:mod:`~flask_oidc.signals` module documentation for details.
+
+
 Other docs
 ==========
 

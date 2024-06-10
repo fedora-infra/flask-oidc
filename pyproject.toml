@@ -38,6 +38,7 @@ python = "^3.8"
 flask = "^2.0.0 || ^3.0.0"
 authlib = "^1.2.0"
 requests = "^2.24.0"
+blinker = "^1.5.0"
 
 [tool.poetry.group.dev.dependencies]
 black = ">=22.6.0"

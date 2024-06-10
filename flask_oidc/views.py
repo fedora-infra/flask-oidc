@@ -21,6 +21,14 @@ from flask import (
     url_for,
 )
 
+from .signals import (
+    after_authorize,
+    after_logout,
+    before_authorize,
+    before_login_redirect,
+    before_logout,
+)
+
 logger = logging.getLogger(__name__)
 
 auth_routes = Blueprint("oidc_auth", __name__)
@@ -37,11 +45,17 @@ def login_view():
     else:
         redirect_uri = url_for("oidc_auth.authorize", _external=True)
     session["next"] = request.args.get("next", request.root_url)
+    before_login_redirect.send(
+        g._oidc_auth,
+        redirect_uri=redirect_uri,
+        next=session["next"],
+    )
     return g._oidc_auth.authorize_redirect(redirect_uri)
 
 
 @auth_routes.route("/authorize", endpoint="authorize")
 def authorize_view():
+    before_authorize.send(g._oidc_auth)
     try:
         token = g._oidc_auth.authorize_access_token()
     except OAuthError as e:
@@ -57,6 +71,7 @@ def authorize_view():
         del session["next"]
     except KeyError:
         return_to = request.root_url
+    after_authorize.send(g._oidc_auth, token=token, return_to=return_to)
     return redirect(return_to)
 
 
@@ -75,6 +90,7 @@ def logout_view():
 
     .. versionadded:: 1.0
     """
+    before_logout.send(g._oidc_auth)
     session.pop("oidc_auth_token", None)
     session.pop("oidc_auth_profile", None)
     g.oidc_id_token = None
@@ -84,6 +100,7 @@ def logout_view():
     else:
         flash("You were successfully logged out.")
     return_to = request.args.get("next", request.root_url)
+    after_logout.send(g._oidc_auth, reason=reason, return_to=return_to)
     return redirect(return_to)
 
 
