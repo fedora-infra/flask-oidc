@@ -943,6 +943,7 @@ files = [
     {file = "PyYAML-6.0.1-cp311-cp311-win_amd64.whl", hash = "sha256:bf07ee2fef7014951eeb99f56f39c9bb4af143d8aa3c21b1677805985307da34"},
     {file = "PyYAML-6.0.1-cp312-cp312-macosx_10_9_x86_64.whl", hash = "sha256:855fb52b0dc35af121542a76b9a84f8d1cd886ea97c84703eaa6d88e37a2ad28"},
     {file = "PyYAML-6.0.1-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:40df9b996c2b73138957fe23a16a4f0ba614f4c0efce1e9406a184b6d07fa3a9"},
+    {file = "PyYAML-6.0.1-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:a08c6f0fe150303c1c6b71ebcd7213c2858041a7e01975da3a99aed1e7a378ef"},
     {file = "PyYAML-6.0.1-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:6c22bec3fbe2524cde73d7ada88f6566758a8f7227bfbf93a408a9d86bcc12a0"},
     {file = "PyYAML-6.0.1-cp312-cp312-musllinux_1_1_x86_64.whl", hash = "sha256:8d4e9c88387b0f5c7d5f281e55304de64cf7f9c0021a3525bd3b1c542da3b0e4"},
     {file = "PyYAML-6.0.1-cp312-cp312-win32.whl", hash = "sha256:d483d2cdf104e7c9fa60c544d92981f12ad66a457afae824d146093b8c294c54"},
@@ -1019,13 +1020,13 @@ tests = ["coverage (>=6.0.0)", "flake8", "mypy", "pytest (>=7.0.0)", "pytest-asy
 
 [[package]]
 name = "reuse"
-version = "2.1.0"
+version = "3.0.2"
 description = "reuse is a tool for compliance with the REUSE recommendations."
 optional = false
-python-versions = ">=3.8,<4.0"
+python-versions = "<4.0,>=3.8"
 files = [
-    {file = "reuse-2.1.0-cp310-cp310-manylinux_2_35_x86_64.whl", hash = "sha256:b214e756582766c9a8c84e195707a4ee86f58640bc2b0c5eac85279f5fd7d9de"},
-    {file = "reuse-2.1.0.tar.gz", hash = "sha256:4211e91caa4c9e433802618a89a2d49a67e2bf76a8029d6708090892f0cdebec"},
+    {file = "reuse-3.0.2-cp311-cp311-manylinux_2_36_x86_64.whl", hash = "sha256:bf5a65c2dba4b481ee5ace18a3863095ee95ff3e72acaf6cd4446bb83d786970"},
+    {file = "reuse-3.0.2.tar.gz", hash = "sha256:73eb8262b84527a90822404e7504f69081854759806830d402ea1e92176f32a6"},
 ]
 
 [package.dependencies]
@@ -1033,7 +1034,7 @@ binaryornot = ">=0.4.4,<0.5.0"
 "boolean.py" = ">=3.8"
 Jinja2 = ">=3.0.0,<4.0.0"
 license-expression = ">=1.0"
-python-debian = ">=0.1.38,<0.1.45 || >0.1.45,<0.1.46 || >0.1.46,<0.1.47 || >0.1.47,<0.2.0"
+python-debian = ">=0.1.34,<0.1.45 || >0.1.45,<0.1.46 || >0.1.46,<0.1.47 || >0.1.47,<0.2.0"
 
 [[package]]
 name = "ruff"
@@ -1296,4 +1297,4 @@ test = ["big-O", "importlib-resources", "jaraco.functools", "jaraco.itertools", 
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8"
-content-hash = "6b2d5bbd86bc766e38916b04a18153779aa40e464dc6b969c36544cffdb53901"
+content-hash = "73e0a3486cd2a3e58d82667fd3ef09722f61b573be650d593620ccccb46ad1d8"
