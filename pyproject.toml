@@ -49,7 +49,7 @@ responses = ">=0.23.3"
 sphinxcontrib-httpdomain = "^1.8.1"
 flask-sphinx-themes = "^1.0.2"
 packaging = "^23.1"
-myst-parser = "^2.0.0"
+myst-parser = "^2.0.0 || ^3.0.0"
 reuse = "^2.1.0"
 
 [build-system]
