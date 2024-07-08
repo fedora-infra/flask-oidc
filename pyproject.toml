@@ -51,7 +51,7 @@ pytest-cov = ">=3.0.0"
 ruff = ">=0.0.253"
 responses = ">=0.23.3"
 packaging = "^23.1"
-reuse = "^2.1.0 || ^3.0.0"
+reuse = "^2.1.0 || ^3.0.0 || ^4.0.0"
 
 [tool.poetry.extras]
 docs = ["sphinx", "myst-parser", "sphinxcontrib-httpdomain", "flask-sphinx-themes"]
