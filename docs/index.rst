@@ -81,7 +81,7 @@ A very basic example client::
         # This uses the user instance at g.oidc_user instead
         if g.oidc_user.logged_in:
             return 'Welcome %s' % g.oidc_user.profile.get('email')
-        else
+        else:
             return 'Not logged in'
 
 
