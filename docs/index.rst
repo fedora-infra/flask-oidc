@@ -199,6 +199,12 @@ Settings reference
 
 This is a list of all settings supported in the current release.
 
+  OIDC_CLIENT_SECRETS
+    **Mandatory**. This is the path to the ``client_secrets.json`` file that was
+    generated (or that you wrote) after registration with the Identity Provider.
+    It can also be the contents of this file, as a dictionary (including the
+    top-level ``web`` key).
+
   OIDC_SCOPES
     A string containing the scopes that should be requested separated by spaces.
     This impacts the information available in the ``oidc_auth_profile`` session
