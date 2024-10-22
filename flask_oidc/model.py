@@ -51,6 +51,11 @@ class User:
         return self.profile.get("nickname")
 
     @property
+    def email(self):
+        """The user's email."""
+        return self.profile.get("email")
+
+    @property
     def groups(self):
         """The list of group names the user belongs to."""
         return self.profile.get("groups", [])

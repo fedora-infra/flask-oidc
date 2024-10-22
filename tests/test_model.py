@@ -22,8 +22,9 @@ def test_user_in_view(client, dummy_token):
     assert user.logged_in
     assert user.access_token == dummy_token["access_token"]
     assert user.refresh_token == dummy_token["refresh_token"]
-    assert user.profile == {"nickname": "dummy"}
+    assert user.profile == {"nickname": "dummy", "email": "dummy@example.com"}
     assert user.name == "dummy"
+    assert user.email == "dummy@example.com"
 
 
 def test_user_with_groups(client, dummy_token):
@@ -34,7 +35,11 @@ def test_user_with_groups(client, dummy_token):
 
     assert hasattr(flask.g, "oidc_user")
     user = flask.g.oidc_user
-    assert user.profile == {"nickname": "dummy", "groups": ["dummy_group"]}
+    assert user.profile == {
+        "nickname": "dummy",
+        "email": "dummy@example.com",
+        "groups": ["dummy_group"],
+    }
     assert user.groups == ["dummy_group"]
 
 
