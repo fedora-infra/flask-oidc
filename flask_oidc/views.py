@@ -44,7 +44,7 @@ def login_view():
         )
     else:
         redirect_uri = url_for("oidc_auth.authorize", _external=True)
-    session["next"] = request.args.get("next", request.root_url)
+    session["next"] = request.args.get("next", request.url_root)
     before_login_redirect.send(
         g._oidc_auth,
         redirect_uri=redirect_uri,
@@ -70,7 +70,7 @@ def authorize_view():
         return_to = session["next"]
         del session["next"]
     except KeyError:
-        return_to = request.root_url
+        return_to = request.url_root
     after_authorize.send(g._oidc_auth, token=token, return_to=return_to)
     return redirect(return_to)
 
@@ -99,7 +99,7 @@ def logout_view():
         flash("Your session expired, please reconnect.")
     else:
         flash("You were successfully logged out.")
-    return_to = request.args.get("next", request.root_url)
+    return_to = request.args.get("next", request.url_root)
     after_logout.send(g._oidc_auth, reason=reason, return_to=return_to)
     return redirect(return_to)
 

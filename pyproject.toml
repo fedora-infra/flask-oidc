@@ -35,10 +35,10 @@ include = [
 
 [tool.poetry.dependencies]
 python = "^3.8"
-flask = "^2.0.0 || ^3.0.0"
+flask = "^0.12.2 || ^1.0.0 || ^2.0.0 || ^3.0.0"
 authlib = "^1.2.0"
-requests = "^2.24.0"
-blinker = "^1.5.0"
+requests = "^2.20.0"
+blinker = "^1.4.0"
 sphinx = {version = "*", optional = true}
 myst-parser = {version = "*", optional = true}
 sphinxcontrib-httpdomain = {version = "*", optional = true}
@@ -55,6 +55,10 @@ reuse = "^2.1.0 || ^3.0.0 || ^4.0.0"
 
 [tool.poetry.extras]
 docs = ["sphinx", "myst-parser", "sphinxcontrib-httpdomain", "flask-sphinx-themes"]
+
+[tool.poetry.build]
+generate-setup-file = true
+
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

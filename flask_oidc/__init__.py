@@ -194,7 +194,7 @@ class OpenIDConnect:
             token = session.get("oidc_auth_token")
             if not token:
                 return
-            if f"{request.root_path}{request.path}" == url_for("oidc_auth.logout"):
+            if f"{request.script_root}{request.path}" == url_for("oidc_auth.logout"):
                 return  # Avoid redirect loop
             token = OAuth2Token.from_dict(token)
             try:
@@ -330,7 +330,7 @@ class OpenIDConnect:
 
         .. versionadded:: 1.0
         """
-        return_to = return_to or request.root_url
+        return_to = return_to or request.url_root
         warnings.warn(
             "The logout method is deprecated, just redirect to {}".format(
                 url_for("oidc_auth.logout", next=return_to)
