@@ -50,8 +50,9 @@ logged in using OpenID Connect.
 If the user is logged in, you can use ``session["oidc_auth_profile"]`` to get
 information about the currently logged in user.
 
-A :class:`~flask_oidc.model.User` object is also provided on ``g.oidc_user``, see its API
-documentation to discover which convenient properties are available.
+A :class:`~flask_oidc.model.User` object is also provided on `Flask's g object`_ as
+``g.oidc_user``. See its API documentation to discover which convenient properties are
+available.
 You can set the ``OIDC_USER_CLASS`` configuration variable to the python path of a class if
 you want to user your own class. It needs to accept the extension instance as only
 constructor argument.
@@ -59,10 +60,14 @@ constructor argument.
 You can decorate any view function with :meth:`~flask_oidc.OpenIDConnect.require_login`
 to redirect anonymous users to the OIDC provider.
 
+.. _Flask's g object: https://flask.palletsprojects.com/en/3.0.x/api/#flask.g
+
 
 Example
 -------
 A very basic example client::
+
+    from flask import g, session
 
     @app.route('/')
     def index():
