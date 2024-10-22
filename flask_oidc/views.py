@@ -40,7 +40,7 @@ def login_view():
         redirect_uri = current_app.config["OIDC_OVERWRITE_REDIRECT_URI"]
     elif current_app.config["OIDC_CALLBACK_ROUTE"]:
         redirect_uri = (
-            f"https://{request.host}{current_app.config['OIDC_CALLBACK_ROUTE']}"
+            f"{request.url_root.rstrip('/')}{current_app.config['OIDC_CALLBACK_ROUTE']}"
         )
     else:
         redirect_uri = url_for("oidc_auth.authorize", _external=True)

@@ -373,7 +373,7 @@ def test_oidc_callback_route(make_test_app):
     client = app.test_client()
     resp = client.get("/login")
     assert resp.status_code == 302
-    assert "redirect_uri=https%3A%2F%2Flocalhost%2Fdummy_cb" in resp.location
+    assert "redirect_uri=http%3A%2F%2Flocalhost%2Fdummy_cb" in resp.location
     with pytest.warns():
         resp = client.get("/dummy_cb?dummy_arg=dummy_value")
     assert resp.status_code == 302
