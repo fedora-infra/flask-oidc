@@ -1391,4 +1391,4 @@ docs = ["flask-sphinx-themes", "myst-parser", "sphinx", "sphinxcontrib-httpdomai
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8"
-content-hash = "8258476b78b4f16a2bcedcc204697c27143caa715b36eb5e4e5488079ceb58c1"
+content-hash = "71de7fa715cabd253c98b7d00f2d9607f277df87a1ef6abc851887ad22a0ed06"

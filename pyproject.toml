@@ -35,7 +35,7 @@ include = [
 
 [tool.poetry.dependencies]
 python = "^3.8"
-flask = "^0.12.2 || ^1.0.0 || ^2.0.0 || ^3.0.0"
+flask = ">=0.12.2,<4.0.0"
 authlib = "^1.2.0"
 requests = "^2.20.0"
 blinker = "^1.4.0"
