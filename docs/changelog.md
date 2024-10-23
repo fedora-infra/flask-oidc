@@ -1,27 +1,42 @@
 # Changelog
 
+## 2.2.1 (2024-10-23)
+
+### Added
+
+- Add compatibility with EL8 ([8a8bf4c](https://github.com/fedora-infra/flask-oidc/commit/8a8bf4c>))
+- Add an accessor for the user's email ([32f046a](https://github.com/fedora-infra/flask-oidc/commit/32f046a>))
+- Document the `OIDC_CLIENT_SECRETS` config option ([2e9b5b2](https://github.com/fedora-infra/flask-oidc/commit/2e9b5b2>))
+
+### Fixed
+
+- Add a config file for readthedocs ([fd55294](https://github.com/fedora-infra/flask-oidc/commit/fd55294>))
+- Minor typo/fixes ([fd1f415](https://github.com/fedora-infra/flask-oidc/commit/fd1f415>))
+- Improve the documentation ([0836711](https://github.com/fedora-infra/flask-oidc/commit/0836711>))
+- Include the `root_path` when redirecting to the custom callback route ([71747d1](https://github.com/fedora-infra/flask-oidc/commit/71747d1>))
+
 
 ## 2.2.0 (2024-06-11)
 
 ### Added
 
-- Add a user model to `flask.g` with convenience properties ([5bf8808](https://github.com/fedora-infra/tahrir-api/commit/5bf8808>))
-- Add signals to hook into the login and logout process ([68351b6](https://github.com/fedora-infra/tahrir-api/commit/68351b6>))
+- Add a user model to `flask.g` with convenience properties ([5bf8808](https://github.com/fedora-infra/flask-oidc/commit/5bf8808>))
+- Add signals to hook into the login and logout process ([68351b6](https://github.com/fedora-infra/flask-oidc/commit/68351b6>))
 
 ### Changed
 
-- Ship the licenses files in the sdist ([3e37982](https://github.com/fedora-infra/tahrir-api/commit/3e37982>))
-- Update dependencies ([a122e22](https://github.com/fedora-infra/tahrir-api/commit/a122e22>),
-                       [a581fdf](https://github.com/fedora-infra/tahrir-api/commit/a581fdf>),
-                       [d51d24b](https://github.com/fedora-infra/tahrir-api/commit/d51d24b>),
-                       [0db631e](https://github.com/fedora-infra/tahrir-api/commit/0db631e>),
-                       [c5cd54d](https://github.com/fedora-infra/tahrir-api/commit/c5cd54d>),
-                       [2134e46](https://github.com/fedora-infra/tahrir-api/commit/2134e46>))
+- Ship the licenses files in the sdist ([3e37982](https://github.com/fedora-infra/flask-oidc/commit/3e37982>))
+- Update dependencies ([a122e22](https://github.com/fedora-infra/flask-oidc/commit/a122e22>),
+                       [a581fdf](https://github.com/fedora-infra/flask-oidc/commit/a581fdf>),
+                       [d51d24b](https://github.com/fedora-infra/flask-oidc/commit/d51d24b>),
+                       [0db631e](https://github.com/fedora-infra/flask-oidc/commit/0db631e>),
+                       [c5cd54d](https://github.com/fedora-infra/flask-oidc/commit/c5cd54d>),
+                       [2134e46](https://github.com/fedora-infra/flask-oidc/commit/2134e46>))
 
 ### Fixed
 
-- Correct typo in example in index.rst ([b21e87b](https://github.com/fedora-infra/tahrir-api/commit/b21e87b>))
-- Give the github release step access to the changelog ([7bc785d](https://github.com/fedora-infra/tahrir-api/commit/7bc785d>))
+- Correct typo in example in index.rst ([b21e87b](https://github.com/fedora-infra/flask-oidc/commit/b21e87b>))
+- Give the github release step access to the changelog ([7bc785d](https://github.com/fedora-infra/flask-oidc/commit/7bc785d>))
 
 
 ## 2.1.1 (2023-10-27)
