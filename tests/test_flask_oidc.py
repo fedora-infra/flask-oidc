@@ -176,6 +176,14 @@ def test_bad_token(client):
     assert "Internal Server Error" in resp.get_data(as_text=True)
 
 
+def test_redirect_obsolete_argument(test_app):
+    with test_app.test_request_context(path="/somewhere"):
+        with pytest.warns(DeprecationWarning):
+            resp = test_app.oidc_ext.redirect_to_auth_server(None, "dummy")
+    assert resp.status_code == 302
+    assert resp.location == "/login?next=http%3A%2F%2Flocalhost%2Fsomewhere"
+
+
 def test_user_getinfo(test_app, client, dummy_token):
     user_info = {"nickname": "dummy"}
     with test_app.test_request_context(path="/somewhere"):

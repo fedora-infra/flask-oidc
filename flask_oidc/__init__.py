@@ -307,14 +307,33 @@ class OpenIDConnect:
         @wraps(view_func)
         def decorated(*args, **kwargs):
             if not self.user_loggedin:
-                redirect_uri = "{login}?next={here}".format(
-                    login=url_for("oidc_auth.login"),
-                    here=quote_plus(request.url),
-                )
-                return redirect(redirect_uri)
+                return self.redirect_to_auth_server()
             return view_func(*args, **kwargs)
 
         return decorated
+
+    def redirect_to_auth_server(self, destination=None, customstate=None):
+        """
+        Redirect to the IdP.
+
+        :param destination: The page that the user was going to,
+            before we noticed they weren't logged in.
+        :type destination: Url to return the client to if a custom handler is
+            not used. Not available with custom callback.
+        :param customstate: Ignored, left here for compatibility.
+        :returns: A redirect response to start the login process.
+        """
+        if customstate is not None:
+            warnings.warn(
+                "The customstate argument of redirect_to_auth_server is ignored.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+        redirect_uri = "{login}?next={here}".format(
+            login=url_for("oidc_auth.login"),
+            here=quote_plus(destination or request.url),
+        )
+        return redirect(redirect_uri)
 
     def logout(self, return_to=None):
         """
