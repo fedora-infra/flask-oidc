@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "flask-oidc"
-version = "2.2.1"
+version = "2.2.2"
 description = "OpenID Connect extension for Flask"
 readme = "README.rst"
 authors = [

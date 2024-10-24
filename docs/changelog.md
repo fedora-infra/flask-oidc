@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.2.2 (2024-10-24)
+
+### Added
+
+- Re-add `redirect_to_auth_server()` for compatibility with v1.x ([d0cac91](https://github.com/fedora-infra/flask-oidc/commit/d0cac91>))
+
+
 ## 2.2.1 (2024-10-23)
 
 ### Added
