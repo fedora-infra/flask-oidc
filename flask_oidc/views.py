@@ -6,6 +6,7 @@
 
 import logging
 import warnings
+import re
 from urllib.parse import urlparse
 
 from authlib.integrations.base_client.errors import OAuthError
@@ -34,6 +35,30 @@ logger = logging.getLogger(__name__)
 auth_routes = Blueprint("oidc_auth", __name__)
 
 
+def validate_return_url(next, url_root):
+    if next == url_root:
+        return next
+    if not re.match(r"^[a-zA-Z0-9:\/.\-@%?!&+#_=*~']{2,256}$", next):
+        logger.debug("The redirect url you provided contains invalid characters")
+        return url_root
+
+    temp_url = next
+    if not next.startswith(('http://', 'https://')):
+        # add a scheme for urlparse
+        temp_url = 'http://' + next
+
+    parsed_url = urlparse(temp_url)
+    parsed_root = urlparse(url_root)
+    if not parsed_url.netloc and parsed_url.path.startswith('/'):
+        # this is a valid relative url
+        return next
+    if parsed_url.netloc == parsed_root.netloc:
+        # netloc should match for valid absolute urls
+        return next
+    logger.debug("The redirect url you provided is invalid")
+    return url_root
+
+
 @auth_routes.route("/login", endpoint="login")
 def login_view():
     if current_app.config["OIDC_OVERWRITE_REDIRECT_URI"]:
@@ -44,7 +69,8 @@ def login_view():
         )
     else:
         redirect_uri = url_for("oidc_auth.authorize", _external=True)
-    session["next"] = request.args.get("next", request.url_root)
+    next = request.args.get("next", request.url_root)
+    session["next"] = validate_return_url(next, request.url_root)
     before_login_redirect.send(
         g._oidc_auth,
         redirect_uri=redirect_uri,
@@ -99,7 +125,8 @@ def logout_view():
         flash("Your session expired, please reconnect.")
     else:
         flash("You were successfully logged out.")
-    return_to = request.args.get("next", request.url_root)
+    next = request.args.get("next", request.url_root)
+    return_to = validate_return_url(next, request.url_root)
     after_logout.send(g._oidc_auth, reason=reason, return_to=return_to)
     return redirect(return_to)
 
