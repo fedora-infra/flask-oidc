@@ -17,6 +17,7 @@ from flask_oidc.signals import (
     before_authorize,
     before_logout,
 )
+from flask_oidc.views import validate_return_url
 
 HAS_MULTIPLE_CONTEXT_MANAGERS = sys.hexversion >= 0x030900F0  # 3.9.0
 
@@ -132,3 +133,22 @@ def test_oidc_callback_route(test_app, client, dummy_token):
         resp = client.get("/oidc_callback?state=dummy-state&code=dummy-code")
     assert resp.status_code == 302
     assert resp.location == "/authorize?state=dummy-state&code=dummy-code"
+
+
+def test_logout_return_url_invalid(client, dummy_token):
+    with client.session_transaction() as session:
+        session["oidc_auth_token"] = dummy_token
+        session["oidc_auth_profile"] = {"nickname": "dummy"}
+    response = client.get("/logout?next=https://www.google.com")
+    assert response.status_code == 302
+    assert response.location == "http://localhost/"
+
+
+def test_validate_return_url():
+    url_root = "http://localhost/"
+    valid = ["/test/url", "http://localhost/", "http://localhost/test/url"]
+    invalid = ["test/url", "http://localhost1/", "https://www.google.com"]
+    for valid_url in valid:
+        assert validate_return_url(valid_url, url_root) == valid_url
+    for invalid_url in invalid:
+        assert validate_return_url(invalid_url, url_root) == url_root
