@@ -1,7 +1,16 @@
 ---
 name: Test & Build
 
-on: [push, pull_request, workflow_dispatch]
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - develop
+    tags:
+      - "*"
+  pull_request:
+    branches:
+      - develop
 
 jobs:
 
