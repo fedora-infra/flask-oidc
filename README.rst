@@ -22,6 +22,8 @@ flask-oidc
 
 This library should work with any standards compliant OpenID Connect provider.
 
+The full documentation is at https://flask-oidc.readthedocs.io/
+
 It has been tested with:
 
 * `Ipsilon <https://ipsilon-project.org/>`_
@@ -31,3 +33,5 @@ Project status
 ==============
 
 This project is in active development (again).
+
+Test coverage is 100%.
