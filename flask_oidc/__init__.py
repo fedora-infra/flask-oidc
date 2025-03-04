@@ -50,6 +50,12 @@ class IntrospectTokenValidator(BaseIntrospectTokenValidator):
     def introspect_token(self, token_string):
         """Return the token introspection result."""
         oauth = g._oidc_auth
+        if not current_app.config["OIDC_ENABLED"]:
+            testing_profile = current_app.config.get("OIDC_TESTING_PROFILE", {})
+            return {
+                "active": bool(testing_profile),
+                "scope": current_app.config["OIDC_SCOPES"],
+            }
         metadata = oauth.load_server_metadata()
         if "introspection_endpoint" not in metadata:
             raise RuntimeError(
@@ -109,6 +115,7 @@ class OpenIDConnect:
         app.config.setdefault(
             "OIDC_CLIENT_SECRET", self.client_secrets["client_secret"]
         )
+        app.config.setdefault("OIDC_ENABLED", True)
         app.config.setdefault("OIDC_USER_INFO_ENABLED", True)
         app.config.setdefault("OIDC_INTROSPECTION_AUTH_METHOD", "client_secret_post")
         app.config.setdefault("OIDC_CLOCK_SKEW", 60)
@@ -184,10 +191,21 @@ class OpenIDConnect:
 
     def _before_request(self):
         g._oidc_auth = self.oauth.oidc
-        if current_app.extensions.get("_oidc_user_class"):
-            g.oidc_user = current_app.extensions["_oidc_user_class"](self)
-        if not current_app.config["OIDC_RESOURCE_SERVER_ONLY"]:
-            return self.check_token_expiry()
+        User = current_app.extensions.get("_oidc_user_class")
+        if User:
+            g.oidc_user = User(self)
+        if not current_app.config["OIDC_ENABLED"]:
+            # Setup a testing user token and profile
+            testing_profile = current_app.config.get("OIDC_TESTING_PROFILE", {})
+            if testing_profile:
+                session["oidc_auth_token"] = {
+                    "access_token": "testing-access-token",
+                }
+                session["oidc_auth_profile"] = testing_profile
+            return  # Don't validate/introspect the token
+        if current_app.config["OIDC_RESOURCE_SERVER_ONLY"]:
+            return
+        return self.check_token_expiry()
 
     def check_token_expiry(self):
         try:

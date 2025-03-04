@@ -194,6 +194,26 @@ Underneath that top-level key, you have the following keys:
     A list of the registered redirect uris
 
 
+Testing and hacking on your application
+=======================================
+
+When hacking on your application or testing it, you can set the
+``OIDC_ENABLED`` setting to ``False``. This will disable OIDC
+authentication and will not try to contact the OIDC provider you may have
+configured.
+
+You will appear as an anonymous visitor in your application. If you want to
+test with a particular user, you can set the ``OIDC_TESTING_PROFILE``
+setting to a dictionary corresponding to what your OIDC provider would have
+returned when asked for the user profile. For example::
+
+  {
+    "nickname": "testing-user",
+    "email": "testing-user@example.com"
+    "groups": ["testing-group-1", "testing-group-2"],
+  }
+
+
 Settings reference
 ==================
 
@@ -235,6 +255,16 @@ This is a list of all settings supported in the current release.
   OIDC_USER_CLASS
     The python path to a custom :class:`~flask_oidc.model.User` model.
     It needs to accept the extension instance as only constructor argument.
+
+  OIDC_ENABLED
+    A boolean to disable OIDC authentication for testing and development
+    purposes. Defaults to ``True``.
+
+  OIDC_TESTING_PROFILE
+    The profile dictionary that the OIDC provider would have returned if OIDC
+    authentication was enabled. Defaults to ``{}``, which corresponds to an
+    unauthenticated user. This setting is ignored if ``OIDC_ENABLED`` is
+    ``True``
 
 
 Signals

@@ -36,6 +36,12 @@ def get_rt():
     return oidc.get_refresh_token(), 200, {"Content-Type": "text/plain; charset=utf-8"}
 
 
+@bp.route("/get-profile")
+@oidc.require_login
+def get_profile():
+    return json.dumps(g.oidc_user.profile)
+
+
 @oidc.require_login
 def raw_api():
     return {"token": g.oidc_token_info}

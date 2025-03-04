@@ -4,6 +4,7 @@
 #
 # SPDX-License-Identifier: BSD-2-Clause
 
+import json
 import time
 from importlib import metadata
 from unittest import mock
@@ -400,3 +401,40 @@ def test_oidc_overwrite_redirect_uri(make_test_app):
     resp = client.get("/login")
     assert resp.status_code == 302
     assert "redirect_uri=http%3A%2F%2Flocalhost%2Fdummy_cb" in resp.location
+
+
+@pytest.mark.parametrize("anonymous", [True, False])
+def test_oidc_disabled(make_test_app, mocked_responses, anonymous):
+    profile = {
+        "nickname": "dummy-user",
+        "email": "dummy-user@example.com",
+        "groups": ["dummy-group"],
+    }
+    app = make_test_app(
+        {
+            "OIDC_ENABLED": False,
+            "OIDC_TESTING_PROFILE": (None if anonymous else profile),
+        }
+    )
+    client = app.test_client()
+    metadata_call = mocked_responses.get(
+        "https://test/openidc/.well-known/openid-configuration"
+    )
+    tokeninfo_call = mocked_responses.post("https://test/openidc/TokenInfo", json={})
+    resp_profile = client.get("/get-profile")
+    resp_need_token = client.get(
+        "/need-token", headers={"Authorization": "Bearer dummy-token"}
+    )
+    assert metadata_call.call_count == 0
+    assert tokeninfo_call.call_count == 0
+    if anonymous:
+        assert (
+            resp_profile.status_code == 302
+        ), f"Expected redirect to /login (response status was {resp_profile.status})"
+        assert resp_profile.location.startswith("/login?")
+        assert resp_need_token.status_code == 401
+    else:
+        assert resp_profile.status_code == 200
+        assert json.loads(resp_profile.get_data(as_text=True)) == profile
+        assert resp_need_token.status_code == 200
+        assert resp_need_token.get_data(as_text=True) == "OK"
