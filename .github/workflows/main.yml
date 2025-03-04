@@ -37,7 +37,7 @@ jobs:
           no-print-matched-heading: true
       - name: Show the changelog
         env:
-          CHANGELOG: ${{'{{'}} steps.extract-changelog.outputs.markdown {{'}}'}}
+          CHANGELOG: ${{ steps.extract-changelog.outputs.markdown }}
         run: echo "$CHANGELOG"
 
   # https://packaging.python.org/en/latest/guides/publishing-package-distribution-releases-using-github-actions-ci-cd-workflows/
