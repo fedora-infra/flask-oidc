@@ -31,6 +31,7 @@ include = [
     { path = "tests/*", format = "sdist" },
     { path = "docs/*", format = "sdist" },
     { path = "LICENSES/*", format = "sdist" },
+    { path = "REUSE.toml", format = "sdist" },
 ]
 
 [tool.poetry.dependencies]
