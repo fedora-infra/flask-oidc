@@ -108,6 +108,8 @@ class OpenIDConnect:
                     stacklevel=2,
                 )
 
+        app.config.setdefault("OIDC_ENABLED", True)
+
         secrets = self.load_secrets(app)
         self.client_secrets = list(secrets.values())[0]
 
@@ -115,7 +117,6 @@ class OpenIDConnect:
         app.config.setdefault(
             "OIDC_CLIENT_SECRET", self.client_secrets["client_secret"]
         )
-        app.config.setdefault("OIDC_ENABLED", True)
         app.config.setdefault("OIDC_USER_INFO_ENABLED", True)
         app.config.setdefault("OIDC_INTROSPECTION_AUTH_METHOD", "client_secret_post")
         app.config.setdefault("OIDC_CLOCK_SKEW", 60)
@@ -182,7 +183,16 @@ class OpenIDConnect:
 
     def load_secrets(self, app):
         # Load client_secrets.json to pre-initialize some configuration
-        content_or_filepath = app.config["OIDC_CLIENT_SECRETS"]
+        if app.config["OIDC_ENABLED"]:
+            content_or_filepath = app.config["OIDC_CLIENT_SECRETS"]
+        else:
+            content_or_filepath = {
+                "web": {
+                    "client_id": "testing-client-id",
+                    "client_secret": "testing-client-secret",
+                    "issuer": "https://oidc.example.com",
+                }
+            }
         if isinstance(content_or_filepath, dict):
             return content_or_filepath
         else:

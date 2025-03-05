@@ -224,6 +224,8 @@ This is a list of all settings supported in the current release.
     generated (or that you wrote) after registration with the Identity Provider.
     It can also be the contents of this file, as a dictionary (including the
     top-level ``web`` key).
+    If the ``OIDC_ENABLED`` setting is ``False``, this setting will be ignored
+    and dummy values will be used instead.
 
   OIDC_SCOPES
     A string containing the scopes that should be requested separated by spaces.

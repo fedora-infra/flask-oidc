@@ -20,6 +20,7 @@ from werkzeug.exceptions import Unauthorized
 
 from flask_oidc import OpenIDConnect
 
+from .app import create_app
 from .app import oidc as oidc_ext
 from .utils import set_token
 
@@ -438,3 +439,16 @@ def test_oidc_disabled(make_test_app, mocked_responses, anonymous):
         assert json.loads(resp_profile.get_data(as_text=True)) == profile
         assert resp_need_token.status_code == 200
         assert resp_need_token.get_data(as_text=True) == "OK"
+
+
+def test_oidc_disabled_client_secrets():
+    # Make sure we can init the extention when there is no client_secrets.json file
+    test_app = create_app(
+        {"OIDC_ENABLED": False, "OIDC_CLIENT_SECRETS": "/does/not/exist"}
+    )
+    assert test_app.config["OIDC_CLIENT_ID"] == "testing-client-id"
+    assert test_app.config["OIDC_CLIENT_SECRET"] == "testing-client-secret"
+    assert (
+        test_app.config["OIDC_SERVER_METADATA_URL"]
+        == "https://oidc.example.com/.well-known/openid-configuration"
+    )
