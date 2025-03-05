@@ -1,6 +1,18 @@
 # Changelog
 
-## 2.3.0 (2025-03-05)
+## 2.3.1 (2025-03-05)
+
+### Added
+
+- Make the `client_secrets.json` file optional when OIDC is disabled ([1566f85](https://github.com/fedora-infra/flask-oidc/commit/1566f85))
+
+### Fixed
+
+- Link to the docs in the README ([b95e9d9](https://github.com/fedora-infra/flask-oidc/commit/b95e9d9))
+- Fix build in readthedocs ([1b49dca](https://github.com/fedora-infra/flask-oidc/commit/1b49dca))
+
+
+## 2.3.0 (2025-03-04)
 
 ### Added
 
