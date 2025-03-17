@@ -147,7 +147,14 @@ def test_logout_return_url_invalid(client, dummy_token):
 def test_validate_return_url():
     url_root = "http://localhost/"
     valid = ["/test/url", "http://localhost/", "http://localhost/test/url"]
-    invalid = ["test/url", "http://localhost1/", "https://www.google.com", "../../test"]
+    invalid = [
+        "test/url",
+        "http://localhost1/",
+        "https://www.google.com",
+        "../../test",
+        "../\\",
+    ]
+
     for valid_url in valid:
         assert validate_return_url(valid_url, url_root) == valid_url
     for invalid_url in invalid:

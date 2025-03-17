@@ -43,13 +43,13 @@ def validate_return_url(next, url_root):
         return url_root
 
     temp_url = next
-    if not next.startswith(('http://', 'https://')):
+    if not next.startswith(("http://", "https://")):
         # add a scheme for urlparse
-        temp_url = 'http://' + next
+        temp_url = "http://" + next
 
     parsed_url = urlparse(temp_url)
     parsed_root = urlparse(url_root)
-    if not parsed_url.netloc and parsed_url.path.startswith('/'):
+    if not parsed_url.netloc and parsed_url.path.startswith("/"):
         # this is a valid relative url
         return next
     if parsed_url.netloc == parsed_root.netloc:
