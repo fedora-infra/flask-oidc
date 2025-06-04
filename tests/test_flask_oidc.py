@@ -145,7 +145,7 @@ def test_expired_token_cant_renew(client, dummy_token, mocked_responses):
     dummy_token["expires_at"] = int(time.time())
     set_token(client, dummy_token)
 
-    resp = client.get("/")
+    resp = client.get("/?next=https://do-not-use-next.com/openidc/Token")
 
     assert refresh_call.call_count == 1
     assert resp.status_code == 302
@@ -155,6 +155,23 @@ def test_expired_token_cant_renew(client, dummy_token, mocked_responses):
     assert resp.location == "http://localhost/"
     assert "oidc_auth_token" not in flask.session
 
+def test_expired_token_cant_renew_preserve_next(client, dummy_token, mocked_responses):
+    refresh_call = mocked_responses.post(
+        "https://test/openidc/Token", json={"error": "dummy"}, status=401
+    )
+
+    dummy_token["expires_at"] = int(time.time())
+    set_token(client, dummy_token)
+
+    client.application.config["OIDC_PRESERVE_NEXT_ON_ERROR"] = True
+    resp = client.get("/?next=https://use-next.com/openidc/Token")
+    assert refresh_call.call_count == 1
+    assert resp.status_code == 302
+    assert resp.location == "/logout?reason=expired&next=https://use-next.com/openidc/Token"
+    resp = client.get(resp.location)
+    assert resp.status_code == 302
+    assert resp.location == "https://use-next.com/openidc/Token"
+    assert "oidc_auth_token" not in flask.session
 
 def test_expired_token_no_refresh_token(client, dummy_token):
     del dummy_token["refresh_token"]
