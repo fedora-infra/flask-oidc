@@ -128,6 +128,7 @@ class OpenIDConnect:
         app.config.setdefault("OIDC_CLOCK_SKEW", 60)
         app.config.setdefault("OIDC_RESOURCE_SERVER_ONLY", False)
         app.config.setdefault("OIDC_CALLBACK_ROUTE", None)
+        app.config.setdefault("OIDC_PRESERVE_NEXT_ON_ERROR", False)
 
         if "OVERWRITE_REDIRECT_URI" in app.config:
             warnings.warn(
@@ -243,7 +244,11 @@ class OpenIDConnect:
                 self.ensure_active_token(token_obj)
             except AuthlibBaseError as e:
                 logger.info(f"Could not refresh token {token_obj!r}: {e}")
-                return redirect("{}?reason=expired".format(url_for("oidc_auth.logout")))
+                redirect_url = "{}?reason=expired".format(url_for("oidc_auth.logout"))
+                next_url = request.args.get("next", None)
+                if current_app.config["OIDC_PRESERVE_NEXT_ON_ERROR"] and next_url:
+                    redirect_url = f"{redirect_url}&next={next_url}"
+                return redirect(redirect_url)
         except Exception as e:
             logger.exception("Could not check token expiration")
             abort(500, f"{e.__class__.__name__}: {e}")

@@ -275,6 +275,10 @@ This is a list of all settings supported in the current release.
     ``authorize`` view. It has to be an absolute URL (starting with
     ``https://``).
 
+  OIDC_PRESERVE_NEXT_ON_ERROR
+    A boolean to preserve the request arg ``next`` when logging out the user
+    from a failed refresh token check.  Defaults to ``False``
+
 
 Signals
 =======
