@@ -22,9 +22,14 @@ def test_user_in_view(client, dummy_token):
     assert user.logged_in
     assert user.access_token == dummy_token["access_token"]
     assert user.refresh_token == dummy_token["refresh_token"]
-    assert user.profile == {"nickname": "dummy", "email": "dummy@example.com"}
+    assert user.profile == {
+        "nickname": "dummy",
+        "email": "dummy@example.com",
+        "sub": "8f006d91f4404980f89ec2a8a687d96a",
+    }
     assert user.name == "dummy"
     assert user.email == "dummy@example.com"
+    assert user.unique_id == "8f006d91f4404980f89ec2a8a687d96a"
 
 
 def test_user_with_groups(client, dummy_token):
@@ -39,6 +44,7 @@ def test_user_with_groups(client, dummy_token):
         "nickname": "dummy",
         "email": "dummy@example.com",
         "groups": ["dummy_group"],
+        "sub": "8f006d91f4404980f89ec2a8a687d96a",
     }
     assert user.groups == ["dummy_group"]
 
