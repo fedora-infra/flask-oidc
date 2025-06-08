@@ -59,3 +59,8 @@ class User:
     def groups(self):
         """The list of group names the user belongs to."""
         return self.profile.get("groups", [])
+
+    @property
+    def unique_id(self):
+        """The unique and immutable identifier on the Issuer side"""
+        return self.profile.get("sub")
