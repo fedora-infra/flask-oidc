@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.4.0 (2025-06-16)
+
+### Added
+
+- Add `unique_id` method to User ([8333a82](https://github.com/fedora-infra/flask-oidc/commit/8333a82))
+
+### Fixed
+
+- Fix open redirect in login and logout urls ([6e27920](https://github.com/fedora-infra/flask-oidc/commit/6e27920))
+- Remove outdated `metadata` field in Packit config ([e10d80b](https://github.com/fedora-infra/flask-oidc/commit/e10d80b))
+- Switch to the non-deprecated Packit job type ([65b1cea](https://github.com/fedora-infra/flask-oidc/commit/65b1cea))
+
+
 ## 2.3.1 (2025-03-05)
 
 ### Added

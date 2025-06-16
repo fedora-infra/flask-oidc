@@ -208,6 +208,7 @@ setting to a dictionary corresponding to what your OIDC provider would have
 returned when asked for the user profile. For example::
 
   {
+    "sub": "some-unique-identifier",
     "nickname": "testing-user",
     "email": "testing-user@example.com"
     "groups": ["testing-group-1", "testing-group-2"],
