@@ -66,7 +66,10 @@ class IntrospectTokenValidator(BaseIntrospectTokenValidator):
             response = session.introspect_token(
                 metadata["introspection_endpoint"], token=token_string
             )
-        return response.json()
+        result = response.json()
+        # Add the token to the response
+        result["access_token"] = token_string
+        return result
 
 
 class OpenIDConnect:
@@ -208,9 +211,13 @@ class OpenIDConnect:
             # Setup a testing user token and profile
             testing_profile = current_app.config.get("OIDC_TESTING_PROFILE", {})
             if testing_profile:
-                session["oidc_auth_token"] = {
-                    "access_token": "testing-access-token",
-                }
+                self._update_token(
+                    token=OAuth2Token.from_dict(
+                        {
+                            "access_token": "testing-access-token",
+                        }
+                    ),
+                )
                 session["oidc_auth_profile"] = testing_profile
             return  # Don't validate/introspect the token
         if current_app.config["OIDC_RESOURCE_SERVER_ONLY"]:
@@ -244,7 +251,7 @@ class OpenIDConnect:
                 raise InvalidTokenError()
             return result
 
-    def _update_token(name, token, refresh_token=None, access_token=None):
+    def _update_token(self, token, refresh_token=None, access_token=None):
         session["oidc_auth_token"] = g.oidc_id_token = token
 
     @property

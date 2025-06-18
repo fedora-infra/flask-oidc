@@ -10,6 +10,7 @@ Flask app for testing the OpenID Connect extension.
 
 import json
 
+from authlib.integrations.flask_oauth2 import current_token
 from flask import Blueprint, Flask, g
 
 from flask_oidc import OpenIDConnect
@@ -62,7 +63,8 @@ def need_token():
 @bp.route("/need-profile")
 @oidc.accept_token(scopes=["profile"])
 def need_profile():
-    return "OK"
+    profile = g._oidc_auth.userinfo(token=current_token)
+    return json.dumps(profile)
 
 
 def create_app(config, oidc_overrides=None):

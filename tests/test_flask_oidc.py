@@ -332,9 +332,10 @@ def test_accept_token_profile(client, mocked_responses):
             "scope": "openid profile",
         },
     )
+    mocked_responses.get("https://test/openidc/UserInfo", json={"nickname": "dummy"})
     resp = client.get("/need-profile", headers={"Authorization": "Bearer dummy-token"})
     assert resp.status_code == 200
-    assert resp.get_data(as_text=True) == "OK"
+    assert resp.get_data(as_text=True) == '{"nickname": "dummy"}'
 
 
 def test_accept_token_absent_scope(client, mocked_responses):
