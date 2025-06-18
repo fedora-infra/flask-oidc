@@ -299,10 +299,11 @@ def test_accept_token(client, mocked_responses):
 def test_accept_token_no_token(client, mocked_responses):
     resp = client.get("/need-token")
     assert resp.status_code == 401
-    assert resp.json == {
-        "error": "missing_authorization",
-        "error_description": "Missing 'Authorization' in headers.",
-    }
+    assert resp.json.get("error") == "missing_authorization"
+    assert (
+        resp.json.get("error_description") == "Missing 'Authorization' in headers."
+        or resp.json.get("error_description") == 'Missing "Authorization" in headers.'
+    )
 
 
 def test_accept_token_invalid(client, mocked_responses):

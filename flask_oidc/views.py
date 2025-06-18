@@ -5,11 +5,14 @@
 # SPDX-License-Identifier: BSD-2-Clause
 
 import logging
-import warnings
 import re
+import warnings
+from typing import cast
 from urllib.parse import urlparse
 
 from authlib.integrations.base_client.errors import OAuthError
+from authlib.integrations.flask_client import FlaskOAuth2App
+from authlib.oauth2.rfc6749 import OAuth2Token
 from flask import (
     Blueprint,
     abort,
@@ -21,6 +24,7 @@ from flask import (
     session,
     url_for,
 )
+from flask.typing import ResponseValue
 
 from .signals import (
     after_authorize,
@@ -35,7 +39,7 @@ logger = logging.getLogger(__name__)
 auth_routes = Blueprint("oidc_auth", __name__)
 
 
-def validate_return_url(next, url_root):
+def validate_return_url(next: str, url_root: str) -> str:
     if next == url_root:
         return next
     if not re.match(r"^[a-zA-Z0-9:\/.\-@%?!&+#_=*~']{2,256}$", next):
@@ -60,7 +64,7 @@ def validate_return_url(next, url_root):
 
 
 @auth_routes.route("/login", endpoint="login")
-def login_view():
+def login_view() -> ResponseValue:
     if current_app.config["OIDC_OVERWRITE_REDIRECT_URI"]:
         redirect_uri = current_app.config["OIDC_OVERWRITE_REDIRECT_URI"]
     elif current_app.config["OIDC_CALLBACK_ROUTE"]:
@@ -76,14 +80,18 @@ def login_view():
         redirect_uri=redirect_uri,
         next=session["next"],
     )
-    return g._oidc_auth.authorize_redirect(redirect_uri)
+    # TODO: bug in types-authlib: integrations.flask_client is not defined
+    return cast(
+        ResponseValue,
+        cast(FlaskOAuth2App, g._oidc_auth).authorize_redirect(redirect_uri),
+    )
 
 
 @auth_routes.route("/authorize", endpoint="authorize")
-def authorize_view():
+def authorize_view() -> ResponseValue:
     before_authorize.send(g._oidc_auth)
     try:
-        token = g._oidc_auth.authorize_access_token()
+        token: OAuth2Token = g._oidc_auth.authorize_access_token()
     except OAuthError as e:
         logger.exception("Could not get the access token")
         abort(401, str(e))
@@ -102,7 +110,7 @@ def authorize_view():
 
 
 @auth_routes.route("/logout", endpoint="logout")
-def logout_view():
+def logout_view() -> ResponseValue:
     """
     Request the browser to please forget the cookie we set, to clear the
     current session.
@@ -131,7 +139,7 @@ def logout_view():
     return redirect(return_to)
 
 
-def legacy_oidc_callback():
+def legacy_oidc_callback() -> ResponseValue:
     warnings.warn(
         "The {callback_url} route is deprecated, please use {authorize_url}".format(
             callback_url=current_app.config["OIDC_CALLBACK_ROUTE"],
