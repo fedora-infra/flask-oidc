@@ -301,7 +301,7 @@ def test_accept_token_no_token(client, mocked_responses):
     assert resp.status_code == 401
     assert resp.json == {
         "error": "missing_authorization",
-        "error_description": 'Missing "Authorization" in headers.',
+        "error_description": "Missing 'Authorization' in headers.",
     }
 
 
