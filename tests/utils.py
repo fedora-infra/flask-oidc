@@ -2,6 +2,8 @@
 #
 # SPDX-License-Identifier: BSD-2-Clause
 
+import time
+
 
 def set_token(client, token, profile=None):
     _profile = {
@@ -13,3 +15,8 @@ def set_token(client, token, profile=None):
     with client.session_transaction() as session:
         session["oidc_auth_token"] = token
         session["oidc_auth_profile"] = _profile
+
+
+def expire_token(client, token):
+    token["expires_at"] = int(time.time())
+    set_token(client, token)
