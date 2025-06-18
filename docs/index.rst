@@ -269,6 +269,12 @@ This is a list of all settings supported in the current release.
     unauthenticated user. This setting is ignored if ``OIDC_ENABLED`` is
     ``True``
 
+  OIDC_OVERWRITE_REDIRECT_URI
+    A string that will used as the ``redirect_uri`` sent to the Identity
+    Provider. Use this if you want to change the callback URL from the default
+    ``authorize`` view. It has to be an absolute URL (starting with
+    ``https://``).
+
 
 Signals
 =======
