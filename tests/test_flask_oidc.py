@@ -5,7 +5,6 @@
 # SPDX-License-Identifier: BSD-2-Clause
 
 import json
-import time
 from importlib import metadata
 from unittest import mock
 from urllib.parse import parse_qs, urlparse, urlsplit
@@ -22,7 +21,7 @@ from flask_oidc import OpenIDConnect
 
 from .app import create_app
 from .app import oidc as oidc_ext
-from .utils import set_token
+from .utils import expire_token, set_token
 
 
 def callback_url_for(response):
@@ -101,8 +100,7 @@ def test_logout_redirect_loop(make_test_app, dummy_token, mocked_responses):
         mocked_responses.post(
             "https://test/openidc/Token", json={"error": "dummy"}, status=401
         )
-        dummy_token["expires_at"] = int(time.time())
-        set_token(client, dummy_token)
+        expire_token(client, dummy_token)
 
         resp = client.get("/logout?reason=expired")
         assert resp.location == "http://localhost/subpath/"
@@ -113,9 +111,7 @@ def test_expired_token(client, dummy_token, mocked_responses):
     new_token = dummy_token.copy()
     new_token["access_token"] = "this-is-new"
     refresh_call = mocked_responses.post("https://test/openidc/Token", json=new_token)
-
-    dummy_token["expires_at"] = int(time.time())
-    set_token(client, dummy_token)
+    expire_token(client, dummy_token)
 
     resp = client.get("/")
 
@@ -141,9 +137,7 @@ def test_expired_token_cant_renew(client, dummy_token, mocked_responses):
     refresh_call = mocked_responses.post(
         "https://test/openidc/Token", json={"error": "dummy"}, status=401
     )
-
-    dummy_token["expires_at"] = int(time.time())
-    set_token(client, dummy_token)
+    expire_token(client, dummy_token)
 
     resp = client.get("/?next=https://localhost/another/app")
 
@@ -155,13 +149,12 @@ def test_expired_token_cant_renew(client, dummy_token, mocked_responses):
     assert resp.location == "http://localhost/"
     assert "oidc_auth_token" not in flask.session
 
+
 def test_expired_token_cant_renew_preserve_next(client, dummy_token, mocked_responses):
     refresh_call = mocked_responses.post(
         "https://test/openidc/Token", json={"error": "dummy"}, status=401
     )
-
-    dummy_token["expires_at"] = int(time.time())
-    set_token(client, dummy_token)
+    expire_token(client, dummy_token)
 
     client.application.config["OIDC_PRESERVE_NEXT_ON_ERROR"] = True
     resp = client.get("/?next=https://localhost/another/app")
@@ -173,10 +166,10 @@ def test_expired_token_cant_renew_preserve_next(client, dummy_token, mocked_resp
     assert resp.location == "https://localhost/another/app"
     assert "oidc_auth_token" not in flask.session
 
+
 def test_expired_token_no_refresh_token(client, dummy_token):
     del dummy_token["refresh_token"]
-    dummy_token["expires_at"] = int(time.time())
-    set_token(client, dummy_token)
+    expire_token(client, dummy_token)
 
     resp = client.get("/")
 
