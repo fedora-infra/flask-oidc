@@ -50,6 +50,9 @@ ruff = ">=0.0.253"
 responses = ">=0.23.3"
 packaging = "^23.1"
 reuse = "^2.1.0 || ^3.0.0 || ^4.0.0 || ^5.0.0"
+mypy = "^1.16.1"
+pyright = "^1.1.402"
+types-authlib = "^1.5.0.20250608"
 
 [tool.poetry.group.docs.dependencies]
 sphinx = "*"
@@ -88,3 +91,10 @@ exclude_lines = [
     "\\.\\.\\.",
     "if __name__ == .__main__.:",
 ]
+
+[tool.mypy]
+strict = true
+
+[[tool.mypy.overrides]]
+module = ["authlib.integrations.flask_oauth2.*"]
+follow_untyped_imports = true

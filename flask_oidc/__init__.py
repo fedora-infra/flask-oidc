@@ -8,17 +8,19 @@ import json
 import logging
 import warnings
 from functools import wraps
+from typing import Any, Callable, Optional, cast
 from urllib.parse import quote_plus
 
 from authlib.common.errors import AuthlibBaseError
 from authlib.integrations.base_client import InvalidTokenError
-from authlib.integrations.flask_client import OAuth
-from authlib.integrations.flask_oauth2 import ResourceProtector
+from authlib.integrations.flask_client import FlaskOAuth2App, OAuth
+from authlib.integrations.flask_oauth2.resource_protector import ResourceProtector
 from authlib.oauth2.rfc6749 import OAuth2Token
 from authlib.oauth2.rfc7662 import (
     IntrospectTokenValidator as BaseIntrospectTokenValidator,
 )
-from flask import abort, current_app, g, redirect, request, session, url_for
+from flask import Flask, abort, current_app, g, redirect, request, session, url_for
+from flask.typing import ResponseReturnValue
 from werkzeug.utils import import_string
 
 from .views import auth_routes, legacy_oidc_callback
@@ -47,7 +49,8 @@ logger = logging.getLogger(__name__)
 class IntrospectTokenValidator(BaseIntrospectTokenValidator):
     """Validates a token using introspection."""
 
-    def introspect_token(self, token_string):
+    # TODO: bug in types-authlib: this is supposed to return a token dict
+    def introspect_token(self, token_string: str) -> dict[str, Any]:  # type: ignore
         """Return the token introspection result."""
         oauth = g._oidc_auth
         if not current_app.config["OIDC_ENABLED"]:
@@ -66,7 +69,7 @@ class IntrospectTokenValidator(BaseIntrospectTokenValidator):
             response = session.introspect_token(
                 metadata["introspection_endpoint"], token=token_string
             )
-        result = response.json()
+        result: dict[str, Any] = response.json()
         # Add the token to the response
         result["access_token"] = token_string
         return result
@@ -77,12 +80,12 @@ class OpenIDConnect:
 
     def __init__(
         self,
-        app=None,
-        credentials_store=None,
-        http=None,
-        time=None,
-        urandom=None,
-        prefix=None,
+        app: Optional[Flask] = None,
+        credentials_store: Optional[Any] = None,
+        http: Optional[Any] = None,
+        time: Optional[Any] = None,
+        urandom: Optional[Any] = None,
+        prefix: Optional[str] = None,
     ):
         for param_name in ("credentials_store", "http", "time", "urandom"):
             if locals()[param_name] is not None:
@@ -95,7 +98,7 @@ class OpenIDConnect:
         if app is not None:
             self.init_app(app, prefix=prefix)
 
-    def init_app(self, app, prefix=None):
+    def init_app(self, app: Flask, prefix: Optional[str] = None) -> None:
         # Removed features, die if still there
         for param in _CONFIG_REMOVED:
             if param in app.config:
@@ -155,8 +158,9 @@ class OpenIDConnect:
             f"{provider_url}/.well-known/openid-configuration",
         )
 
-        self.oauth = OAuth(app)
-        self.oauth.register(
+        # TODO: bug in types-authlib: no typing for authlib.integrations.flask_client.
+        self.oauth = OAuth(app)  # type: ignore
+        self.oauth.register(  # type: ignore
             name="oidc",
             server_metadata_url=app.config["OIDC_SERVER_METADATA_URL"],
             client_kwargs={
@@ -184,7 +188,7 @@ class OpenIDConnect:
         # Flask hooks
         app.before_request(self._before_request)
 
-    def load_secrets(self, app):
+    def load_secrets(self, app: Flask) -> dict[str, Any]:
         # Load client_secrets.json to pre-initialize some configuration
         if app.config["OIDC_ENABLED"]:
             content_or_filepath = app.config["OIDC_CLIENT_SECRETS"]
@@ -200,9 +204,10 @@ class OpenIDConnect:
             return content_or_filepath
         else:
             with open(content_or_filepath) as f:
-                return json.load(f)
+                content: dict[str, Any] = json.load(f)
+                return content
 
-    def _before_request(self):
+    def _before_request(self) -> Optional[ResponseReturnValue]:
         g._oidc_auth = self.oauth.oidc
         User = current_app.extensions.get("_oidc_user_class")
         if User:
@@ -212,50 +217,62 @@ class OpenIDConnect:
             testing_profile = current_app.config.get("OIDC_TESTING_PROFILE", {})
             if testing_profile:
                 self._update_token(
-                    token=OAuth2Token.from_dict(
+                    # TODO: bug in types-authlib: OAuth2Token.from_dict is not typed correctly
+                    token=OAuth2Token.from_dict(  # type: ignore
                         {
                             "access_token": "testing-access-token",
                         }
                     ),
                 )
                 session["oidc_auth_profile"] = testing_profile
-            return  # Don't validate/introspect the token
+            return None  # Don't validate/introspect the token
         if current_app.config["OIDC_RESOURCE_SERVER_ONLY"]:
-            return
+            return None
         return self.check_token_expiry()
 
-    def check_token_expiry(self):
+    def check_token_expiry(self) -> Optional[ResponseReturnValue]:
         try:
-            token = session.get("oidc_auth_token")
+            token: Optional[OAuth2Token] = session.get("oidc_auth_token")
             if not token:
-                return
+                return None
             if f"{request.script_root}{request.path}" == url_for("oidc_auth.logout"):
-                return  # Avoid redirect loop
-            token = OAuth2Token.from_dict(token)
+                return None  # Avoid redirect loop
+            # TODO: bug in types-authlib: OAuth2Token.from_dict is not typed correctly
+            token_obj = OAuth2Token.from_dict(token)  # type: ignore
             try:
-                self.ensure_active_token(token)
+                self.ensure_active_token(token_obj)
             except AuthlibBaseError as e:
-                logger.info(f"Could not refresh token {token!r}: {e}")
+                logger.info(f"Could not refresh token {token_obj!r}: {e}")
                 return redirect("{}?reason=expired".format(url_for("oidc_auth.logout")))
         except Exception as e:
             logger.exception("Could not check token expiration")
             abort(500, f"{e.__class__.__name__}: {e}")
+        return None
 
-    def ensure_active_token(self, token: OAuth2Token):
-        metadata = self.oauth.oidc.load_server_metadata()
-        with self.oauth.oidc._get_oauth_client(**metadata) as session:
-            result = session.ensure_active_token(token)
+    def ensure_active_token(self, token: OAuth2Token) -> bool:
+        client = cast(FlaskOAuth2App, self.oauth.oidc)
+        metadata = client.load_server_metadata()
+        # TODO: bug in types-oauth: _get_oauth_client() is not typed (because it's private?)
+        with client._get_oauth_client(  # pyright: ignore[reportAttributeAccessIssue]
+            **metadata
+        ) as session:
+            result: Optional[bool] = session.ensure_active_token(token)
             if result is None:
                 # See the ensure_active_token method in
                 # authlib.integrations.requests_client.oauth2_session:OAuth2Auth
                 raise InvalidTokenError()
             return result
 
-    def _update_token(self, token, refresh_token=None, access_token=None):
+    def _update_token(
+        self,
+        token: OAuth2Token,
+        refresh_token: Optional[str] = None,
+        access_token: Optional[str] = None,
+    ) -> None:
         session["oidc_auth_token"] = g.oidc_id_token = token
 
     @property
-    def user_loggedin(self):
+    def user_loggedin(self) -> bool:
         """
         Represents whether the user is currently logged in.
 
@@ -266,11 +283,14 @@ class OpenIDConnect:
         """
         return session.get("oidc_auth_token") is not None
 
-    def user_getinfo(self, fields, access_token=None):
+    def user_getinfo(
+        self, fields: list[str], access_token: Optional[str] = None
+    ) -> dict[str, Any]:
         if not current_app.config["OIDC_USER_INFO_ENABLED"]:
             raise RuntimeError(
                 "User info is disabled in configuration (OIDC_USER_INFO_ENABLED)"
             )
+        profile: dict[str, Any]
         if access_token is not None:
             warnings.warn(
                 "Calling user_getinfo with a token is deprecated, please use "
@@ -278,7 +298,8 @@ class OpenIDConnect:
                 DeprecationWarning,
                 stacklevel=2,
             )
-            return self.oauth.oidc.userinfo(token=access_token)
+            profile = cast(FlaskOAuth2App, self.oauth.oidc).userinfo(token=access_token)
+            return profile
         warnings.warn(
             "The user_getinfo method is deprecated, please use "
             "session['oidc_auth_profile']",
@@ -287,9 +308,10 @@ class OpenIDConnect:
         )
         if not self.user_loggedin:
             abort(401, "User was not authenticated")
-        return session.get("oidc_auth_profile", {})
+        profile = session.get("oidc_auth_profile", {})
+        return profile
 
-    def user_getfield(self, field, access_token=None):
+    def user_getfield(self, field: str, access_token: Optional[str] = None) -> Any:
         """
         Request a single field of information about the user.
 
@@ -309,7 +331,7 @@ class OpenIDConnect:
         )
         return self.user_getinfo([field]).get(field)
 
-    def get_access_token(self):
+    def get_access_token(self) -> Optional[str]:
         """Method to return the current requests' access_token.
 
         :returns: Access token or None
@@ -317,9 +339,10 @@ class OpenIDConnect:
 
         .. versionadded:: 1.2
         """
-        return session.get("oidc_auth_token", {}).get("access_token")
+        value: Optional[str] = session.get("oidc_auth_token", {}).get("access_token")
+        return value
 
-    def get_refresh_token(self):
+    def get_refresh_token(self) -> Optional[str]:
         """Method to return the current requests' refresh_token.
 
         :returns: Access token or None
@@ -327,9 +350,12 @@ class OpenIDConnect:
 
         .. versionadded:: 1.2
         """
-        return session.get("oidc_auth_token", {}).get("refresh_token")
+        value: Optional[str] = session.get("oidc_auth_token", {}).get("refresh_token")
+        return value
 
-    def require_login(self, view_func):
+    def require_login(
+        self, view_func: Callable[..., ResponseReturnValue]
+    ) -> Callable[..., ResponseReturnValue]:
         """
         Use this to decorate view functions that require a user to be logged
         in. If the user is not already logged in, they will be sent to the
@@ -340,14 +366,16 @@ class OpenIDConnect:
         """
 
         @wraps(view_func)
-        def decorated(*args, **kwargs):
+        def decorated(*args: Any, **kwargs: Any) -> ResponseReturnValue:
             if not self.user_loggedin:
                 return self.redirect_to_auth_server()
             return view_func(*args, **kwargs)
 
         return decorated
 
-    def redirect_to_auth_server(self, destination=None, customstate=None):
+    def redirect_to_auth_server(
+        self, destination: Optional[str] = None, customstate: Optional[Any] = None
+    ) -> ResponseReturnValue:
         """
         Redirect to the IdP.
 
@@ -370,7 +398,7 @@ class OpenIDConnect:
         )
         return redirect(redirect_uri)
 
-    def logout(self, return_to=None):
+    def logout(self, return_to: Optional[str] = None) -> ResponseReturnValue:
         """
         Request the browser to please forget the cookie we set, to clear the
         current session.
@@ -394,5 +422,5 @@ class OpenIDConnect:
         )
         return redirect(url_for("oidc_auth.logout", next=return_to))
 
-    def custom_callback(self, *args, **kwargs):
+    def custom_callback(self, *args: Any, **kwargs: Any) -> None:
         raise ValueError("This feature has been dropped")
