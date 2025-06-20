@@ -31,6 +31,7 @@ sys.path.insert(0, topdir)
 # ones.
 extensions = [
     "sphinx.ext.autodoc",
+    "sphinx.ext.intersphinx",
     "sphinx.ext.doctest",
     "sphinx.ext.todo",
     "sphinx.ext.viewcode",
@@ -298,6 +299,15 @@ texinfo_documents = [
 
 # If true, do not generate a @detailmenu in the "Top" node's menu.
 # texinfo_no_detailmenu = False
+
+
+# -- Options for intersphinx extension ---------------------------------------
+# https://www.sphinx-doc.org/en/master/usage/extensions/intersphinx.html#configuration
+
+intersphinx_mapping = {
+    "python": ("https://docs.python.org/3", None),
+    "flask": ("http://flask.palletsprojects.com/en/stable/", None),
+}
 
 
 # -- Extension configuration -------------------------------------------------
