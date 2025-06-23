@@ -277,7 +277,8 @@ This is a list of all settings supported in the current release.
 
   OIDC_PRESERVE_NEXT_ON_ERROR
     A boolean to preserve the request arg ``next`` when logging out the user
-    from a failed refresh token check.  Defaults to ``False``
+    from a failed refresh token check.  This will only work when the ``next``
+    url is the same domain as ``request.url_root``. Defaults to ``False``
 
 
 Signals
