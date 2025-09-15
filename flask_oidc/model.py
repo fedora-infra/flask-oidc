@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: BSD-2-Clause
 
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any, Optional, cast
 
 from flask import current_app, session
 
@@ -47,7 +47,7 @@ class User:
             raise RuntimeError(
                 "User info is disabled in configuration (OIDC_USER_INFO_ENABLED)"
             )
-        return session.get("oidc_auth_profile", {})
+        return cast(dict[str, Any], session.get("oidc_auth_profile", {}))
 
     @property
     def name(self) -> Optional[str]:
