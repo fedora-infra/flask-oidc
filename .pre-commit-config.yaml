@@ -28,6 +28,6 @@ repos:
 
   # License headers
   - repo: https://github.com/fsfe/reuse-tool
-    rev: v6.0.0
+    rev: v6.1.0
     hooks:
       - id: reuse
