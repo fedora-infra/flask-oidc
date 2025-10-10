@@ -129,6 +129,7 @@ class OpenIDConnect:
         app.config.setdefault("OIDC_RESOURCE_SERVER_ONLY", False)
         app.config.setdefault("OIDC_CALLBACK_ROUTE", None)
         app.config.setdefault("OIDC_PRESERVE_NEXT_ON_ERROR", False)
+        app.config.setdefault("OIDC_REQUEST_URL_ON_LOGOUT", False)
 
         if "OVERWRITE_REDIRECT_URI" in app.config:
             warnings.warn(
@@ -248,6 +249,9 @@ class OpenIDConnect:
                 next_url = request.args.get("next", None)
                 if current_app.config["OIDC_PRESERVE_NEXT_ON_ERROR"] and next_url:
                     redirect_url = f"{redirect_url}&next={next_url}"
+                elif current_app.config["OIDC_REQUEST_URL_ON_LOGOUT"]:
+                    # Redirect to request url after logout
+                    redirect_url = f"{redirect_url}&next={quote_plus(request.url)}"
                 return redirect(redirect_url)
         except Exception as e:
             logger.exception("Could not check token expiration")
