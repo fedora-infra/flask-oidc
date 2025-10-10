@@ -42,7 +42,7 @@ auth_routes = Blueprint("oidc_auth", __name__)
 def validate_return_url(next: str, url_root: str) -> str:
     if next == url_root:
         return next
-    if not re.match(r"^[a-zA-Z0-9:\/.\-@%?!&+#_=*~']{2,256}$", next):
+    if not re.match(r"^[a-zA-Z0-9:\/.\-@%?!&+#_=*~']{2,}$", next):
         logger.debug("The redirect url you provided contains invalid characters")
         return url_root
 
