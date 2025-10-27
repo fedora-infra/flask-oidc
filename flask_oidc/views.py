@@ -105,6 +105,7 @@ def authorize_view() -> ResponseValue:
         del session["next"]
     except KeyError:
         return_to = request.url_root
+    flash("You were successfully logged in.")
     after_authorize.send(g._oidc_auth, token=token, return_to=return_to)
     return redirect(return_to)
 
