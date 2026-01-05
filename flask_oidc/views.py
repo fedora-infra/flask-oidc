@@ -11,7 +11,6 @@ from typing import cast
 from urllib.parse import urlparse
 
 from authlib.integrations.base_client.errors import OAuthError
-from authlib.integrations.flask_client import FlaskOAuth2App
 from authlib.oauth2.rfc6749 import OAuth2Token
 from flask import (
     Blueprint,
@@ -81,10 +80,7 @@ def login_view() -> ResponseValue:
         next=session["next"],
     )
     # TODO: bug in types-authlib: integrations.flask_client is not defined
-    return cast(
-        ResponseValue,
-        cast(FlaskOAuth2App, g._oidc_auth).authorize_redirect(redirect_uri),
-    )
+    return cast(ResponseValue, g._oidc_auth.authorize_redirect(redirect_uri))
 
 
 @auth_routes.route("/authorize", endpoint="authorize")
