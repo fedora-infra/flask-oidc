@@ -246,12 +246,13 @@ class OpenIDConnect:
             except AuthlibBaseError as e:
                 logger.info(f"Could not refresh token {token_obj!r}: {e}")
                 redirect_url = "{}?reason=expired".format(url_for("oidc_auth.logout"))
-                next_url = request.args.get("next", None)
-                if current_app.config["OIDC_PRESERVE_NEXT_ON_ERROR"] and next_url:
-                    redirect_url = f"{redirect_url}&next={next_url}"
-                elif current_app.config["OIDC_REQUEST_URL_ON_LOGOUT"]:
+                next_arg: Optional[str] = request.args.get("next", None)
+                next_req: str = quote_plus(request.url)
+                if current_app.config["OIDC_PRESERVE_NEXT_ON_ERROR"] and next_arg:
+                    redirect_url = f"{redirect_url}&next={next_arg}"
+                elif current_app.config["OIDC_REQUEST_URL_ON_LOGOUT"] and next_req:
                     # Redirect to request url after logout
-                    redirect_url = f"{redirect_url}&next={quote_plus(request.url)}"
+                    redirect_url = f"{redirect_url}&next={next_req}"
                 return redirect(redirect_url)
         except Exception as e:
             logger.exception("Could not check token expiration")
