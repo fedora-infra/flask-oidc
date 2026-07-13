@@ -44,7 +44,7 @@ blinker = "^1.4.0"
 
 [tool.poetry.group.dev.dependencies]
 black = ">=22.6.0"
-pytest = "^7.1.2 || ^8.0.0"
+pytest = "^7.1.2 || ^8.0.0 || ^9.0.0"
 pytest-cov = ">=3.0.0"
 ruff = ">=0.0.253"
 responses = ">=0.23.3"

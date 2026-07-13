@@ -49,8 +49,7 @@ logger = logging.getLogger(__name__)
 class IntrospectTokenValidator(BaseIntrospectTokenValidator):
     """Validates a token using introspection."""
 
-    # TODO: bug in types-authlib: this is supposed to return a token dict
-    def introspect_token(self, token_string: str) -> dict[str, Any]:  # type: ignore
+    def introspect_token(self, token_string: str) -> dict[str, Any]:
         """Return the token introspection result."""
         oauth = g._oidc_auth
         if not current_app.config["OIDC_ENABLED"]:
@@ -263,9 +262,7 @@ class OpenIDConnect:
         client = cast(FlaskOAuth2App, self.oauth.oidc)
         metadata = client.load_server_metadata()
         # TODO: bug in types-oauth: _get_oauth_client() is not typed (because it's private?)
-        with client._get_oauth_client(  # pyright: ignore[reportAttributeAccessIssue]
-            **metadata
-        ) as session:
+        with client._get_oauth_client(**metadata) as session:  # type: ignore
             result: Optional[bool] = session.ensure_active_token(token)
             if result is None:
                 # See the ensure_active_token method in
