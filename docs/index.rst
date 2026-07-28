@@ -123,7 +123,7 @@ list of required scopes that the token must provide::
 This decorator is an Authlib `ResourceProtector`_, you'll find more
 documentation on their website.
 
-.. _ResourceProtector: https://docs.authlib.org/en/latest/flask/2/resource-server.html
+.. _ResourceProtector: https://docs.authlib.org/en/latest/oauth2/resource-server/flask.html
 
 
 Registration
