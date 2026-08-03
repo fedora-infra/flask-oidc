@@ -280,6 +280,11 @@ This is a list of all settings supported in the current release.
     from a failed refresh token check.  This will only work when the ``next``
     url is the same domain as ``request.url_root``. Defaults to ``False``
 
+  OIDC_ROOT_URL_ON_LOGOUT
+    A boolean to redirect the user to the root url when logging out the user
+    from a failed refresh token check. This won't work if config
+    ``OIDC_PRESERVE_NEXT_ON_ERROR`` is enabled and a ``next`` request arg exist.
+
 
 Signals
 =======
