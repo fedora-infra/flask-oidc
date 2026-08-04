@@ -229,7 +229,7 @@ The minimum Python version is `3.8`.
 The `OpenIDConnect.accept_token()` decorator now accepts a `scopes` parameter,
 which is a list of scopes that the provided token must include for the view to
 be authorized. It is an Authlib
-[ResourceProtector](https://docs.authlib.org/en/latest/flask/2/resource-server.html).
+[ResourceProtector](https://docs.authlib.org/en/latest/oauth2/resource-server/flask.html).
 
 The Authlib app is available in the `g._oidc_auth` variable. This means that
 there cannot be more than one `OpenIDConnect` extension on a given Flask
